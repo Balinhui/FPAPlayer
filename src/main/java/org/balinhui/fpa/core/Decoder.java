@@ -71,7 +71,7 @@ public class Decoder implements Runnable {
             }
             coverPkt = fmtCtx.streams(coverStream).attached_pic();
             byte[] coverData = null;
-            if (coverPkt != null && coverPkt.data() != null) {
+            if (coverPkt != null && coverPkt.data() != null && coverPkt.size() > 0) {
                 coverData = new byte[coverPkt.size()];
                 coverPkt.data().get(coverData);
             }
