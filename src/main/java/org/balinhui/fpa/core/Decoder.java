@@ -54,7 +54,8 @@ public class Decoder implements Runnable {
             }
             AVStream stream = null;
             for (int i = 0; i < fmtCtx.nb_streams(); i++) {
-                if (fmtCtx.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+                if (fmtCtx.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO &&
+                    (fmtCtx.streams(i).disposition() & AV_DISPOSITION_ATTACHED_PIC) != 0) {
                     coverStream = i;
                 } else if (fmtCtx.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
                     stream = fmtCtx.streams(i);
