@@ -66,14 +66,15 @@ public class Decoder implements Runnable {
                 System.err.println("Doesnt find codec parameter");
                 return new AudioInfo(0, 0, 0, null, null, 0F);
             }
+            byte[] coverData = null;
             if (coverStream == -1) {
                 System.err.println("Doesnt find cover");
-            }
-            coverPkt = fmtCtx.streams(coverStream).attached_pic();
-            byte[] coverData = null;
-            if (coverPkt != null && coverPkt.data() != null && coverPkt.size() > 0) {
-                coverData = new byte[coverPkt.size()];
-                coverPkt.data().get(coverData);
+            } else {
+                coverPkt = fmtCtx.streams(coverStream).attached_pic();
+                if (coverPkt != null && coverPkt.data() != null && coverPkt.size() > 0) {
+                    coverData = new byte[coverPkt.size()];
+                    coverPkt.data().get(coverData);
+                }
             }
             return new AudioInfo(
                     codecPar.ch_layout().nb_channels(),
