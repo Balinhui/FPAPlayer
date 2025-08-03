@@ -43,7 +43,8 @@ public class Action {
         //状态更新，同时为解码线程让出时间
         Main.right.getChildren().remove(Main.button);
         Main.right.getChildren().add(Main.text);
-        Main.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
+        if (info.cover != null)
+            Main.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
 
         Thread play = new Thread(player);
         play.setName("play");

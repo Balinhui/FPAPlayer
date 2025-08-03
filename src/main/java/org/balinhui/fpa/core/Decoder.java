@@ -69,9 +69,11 @@ public class Decoder implements Runnable {
                 System.err.println("Doesnt find cover");
             }
             coverPkt = fmtCtx.streams(coverStream).attached_pic();
-            byte[] coverData = coverPkt == null ? null : new byte[coverPkt.size()];
-            if (coverPkt != null)
+            byte[] coverData = null;
+            if (coverPkt != null && coverPkt.data() != null) {
+                coverData = new byte[coverPkt.size()];
                 coverPkt.data().get(coverData);
+            }
             return new AudioInfo(
                     codecPar.ch_layout().nb_channels(),
                     codecPar.format(),
