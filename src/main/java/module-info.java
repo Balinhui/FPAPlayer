@@ -3,7 +3,6 @@ module org.balinhui.fpa {
     requires javafx.fxml;
     requires org.bytedeco.ffmpeg;
 
-    requires org.controlsfx.controls;
     requires PortAudio;
     requires org.jetbrains.annotations;
     requires com.sun.jna;
