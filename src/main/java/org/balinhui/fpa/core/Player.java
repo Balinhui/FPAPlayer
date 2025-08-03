@@ -170,10 +170,12 @@ public class Player implements Runnable {
         return maxOutputSampleRate;
     }
 
+    @FunctionalInterface
     public interface PlaySample {
         void handler(int nb_samples);
     }
 
+    @FunctionalInterface
     public interface PlayFinished {
         void handler();
     }
