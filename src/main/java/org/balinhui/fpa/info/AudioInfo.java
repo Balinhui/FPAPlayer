@@ -10,15 +10,15 @@ public class AudioInfo {
     public int sampleFormat;
     public int sampleRate;
     public byte[] cover;
-    public Map<String, String> metaData;
+    public Map<String, String> metadata;
     public float durationSeconds;
 
-    public AudioInfo(int channels, int sampleFormat, int sampleRate, byte[] cover, Map<String, String> metaData, float durationSeconds) {
+    public AudioInfo(int channels, int sampleFormat, int sampleRate, byte[] cover, Map<String, String> metadata, float durationSeconds) {
         this.channels = channels;
         this.sampleFormat = sampleFormat;
         this.sampleRate = sampleRate;
         this.cover = cover;
-        this.metaData = metaData;
+        this.metadata = metadata;
         this.durationSeconds = durationSeconds;
     }
 
