@@ -81,7 +81,7 @@ public class Decoder implements Runnable {
                     codecPar.format(),
                     codecPar.sample_rate(),
                     coverData,
-                    getMetaData(fmtCtx, stream),
+                    getMetadata(fmtCtx, stream),
                     fmtCtx.duration() / (float) AV_TIME_BASE
             );
         } finally {
@@ -90,7 +90,7 @@ public class Decoder implements Runnable {
         }
     }
 
-    private Map<String, String> getMetaData(AVFormatContext fmtCtx, AVStream stream) {
+    private Map<String, String> getMetadata(AVFormatContext fmtCtx, AVStream stream) {
         Map<String, String> metadata = new HashMap<>();
         AVDictionary dictionary = stream.metadata() == null ? fmtCtx.metadata() : stream.metadata();
         AVDictionaryEntry entry = null;
