@@ -22,6 +22,11 @@ public class CurrentStatus {
         /**
          * 用于指示解码完成
          */
-        STOP
+        STOP,
+
+        /**
+         * 暂时还没有用，等待解决歌词问题
+         */
+        PAUSE
     }
 }

@@ -21,8 +21,8 @@ import org.balinhui.fpa.ui.DwmAPI;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.Windows;
 
-public class Main extends Application {
-    private static final Logger logger = LogManager.getLogger(Main.class);
+public class FPAScreen extends Application {
+    private static final Logger logger = LogManager.getLogger(FPAScreen.class);
     public static Stage mainWindow;
     public static Dialog<String> settingWindow;
     public static final ImageView view = new ImageView(Resources.ImageRes.cover);

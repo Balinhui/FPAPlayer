@@ -87,7 +87,7 @@ public class Action {
                     logger.info("读取歌曲信息: {}", path[progress]);
                     setLyrics(info.metadata);
                     if (info.cover != null) {
-                        Main.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
+                        FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
                         logger.trace("更新封面");
                     }
                 });
@@ -101,13 +101,13 @@ public class Action {
         decoder.setOnFinished(event);
         decoder.start();
         //状态更新，同时为解码线程让出时间
-        Main.rightPane.getChildren().remove(Main.button);
+        FPAScreen.rightPane.getChildren().remove(FPAScreen.button);
         logger.trace("移除按钮");
-        Main.rightPane.getChildren().add(Main.lyricsPane);
+        FPAScreen.rightPane.getChildren().add(FPAScreen.lyricsPane);
         logger.trace("添加歌词面板");
         setLyrics(info.metadata);
         if (info.cover != null) {
-            Main.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
+            FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
             logger.trace("更新封面");
         }
         player.start();
@@ -117,7 +117,7 @@ public class Action {
         TreeMap<Long, String> lyrics = Lyrics.read(metadata);
         logger.trace("获取歌词和时间轴");
 
-        Main.lyricsPane.getChildren().clear();
+        FPAScreen.lyricsPane.getChildren().clear();
         lyricList.clear();
         int currentTime = 0;
         stopLyrics();
@@ -133,13 +133,13 @@ public class Action {
             currentTime++;
         }
         logger.info("歌词线程启动");
-        Main.lyricsPane.getChildren().add(lyricList.getFirst().getLabel());
+        FPAScreen.lyricsPane.getChildren().add(lyricList.getFirst().getLabel());
     }
 
     private void addLyrics(int currentLyricLine) {
         Platform.runLater(() -> {
             if (currentLyricLine > 1) {
-                Main.lyricsPane.getChildren().remove(
+                FPAScreen.lyricsPane.getChildren().remove(
                         lyricList.get(currentLyricLine - 2).getLabel()
                 );
                 lyricList.get(currentLyricLine - 1).playGo();
@@ -153,7 +153,7 @@ public class Action {
     private void lyricsPaneAdd(int currentLyricLine) {
         Platform.runLater(() -> {
             if (currentLyricLine < lyricList.size()) {
-                Main.lyricsPane.getChildren().add(
+                FPAScreen.lyricsPane.getChildren().add(
                         lyricList.get(currentLyricLine).getLabel()
                 );
             }
@@ -168,7 +168,7 @@ public class Action {
 
     public void flashProgress() {
         Platform.runLater(() ->
-                Main.progress.setProgress(
+                FPAScreen.progress.setProgress(
                         decoder.getCurrentTimeSeconds() / info.durationSeconds
                 )
         );
@@ -185,10 +185,10 @@ public class Action {
         logger.trace("歌曲结束");
         stopLyrics();
         Platform.runLater(() -> {
-            Main.rightPane.getChildren().remove(Main.lyricsPane);
-            Main.rightPane.getChildren().add(Main.button);
-            Main.view.setImage(Resources.ImageRes.cover);
-            Main.progress.setProgress(-1);
+            FPAScreen.rightPane.getChildren().remove(FPAScreen.lyricsPane);
+            FPAScreen.rightPane.getChildren().add(FPAScreen.button);
+            FPAScreen.view.setImage(Resources.ImageRes.cover);
+            FPAScreen.progress.setProgress(-1);
         });
     }
 
