@@ -1,14 +1,16 @@
 package org.balinhui.fpa.core;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 public class CurrentStatus {
-    private static volatile Status currentStatus = Status.STOP;
+    private static final AtomicReference<Status> currentStatus = new AtomicReference<>(Status.STOP);
 
     public static synchronized boolean is(Status status) {
-        return currentStatus == status;
+        return currentStatus.get() == status;
     }
 
     public static synchronized void to(Status status) {
-        currentStatus = status;
+        currentStatus.set(status);
     }
 
     public enum Status {
