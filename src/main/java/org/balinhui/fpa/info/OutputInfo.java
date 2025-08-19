@@ -12,4 +12,14 @@ public class OutputInfo {
         this.sampleRate = sampleRate;
         this.sampleFormat = sampleFormat;
     }
+
+    @Override
+    public String toString() {
+        return "OutputInfo{" +
+                "resample=" + resample +
+                ", channels=" + channels +
+                ", sampleRate=" + sampleRate +
+                ", sampleFormat=" + sampleFormat +
+                '}';
+    }
 }

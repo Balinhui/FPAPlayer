@@ -1,9 +1,13 @@
 package org.balinhui.fpa.core;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class Buffer {
+    private static final Logger logger = LogManager.getLogger(Buffer.class);
     private static final int QUEUE_SIZE = 40;
     private static final BlockingQueue<Data<?>> queue = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
@@ -11,6 +15,7 @@ public class Buffer {
         try {
             queue.put(data);
         } catch (InterruptedException e) {
+            logger.fatal("put失败: {}", e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -19,6 +24,7 @@ public class Buffer {
         try {
             return queue.take();
         } catch (InterruptedException e) {
+            logger.fatal("take失败: {}", e.getMessage());
             throw new RuntimeException(e);
         }
     }

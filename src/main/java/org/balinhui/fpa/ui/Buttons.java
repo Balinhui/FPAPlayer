@@ -4,7 +4,13 @@ import javafx.scene.control.Button;
 import org.jetbrains.annotations.NotNull;
 
 public class Buttons {
-    public static void setLight(@NotNull Button... buttons) {
+
+    public static void setLightOrDark(boolean flag, @NotNull Button... buttons) {
+        if (flag) setDark(buttons);
+        else setLight(buttons);
+    }
+
+    private static void setLight(@NotNull Button... buttons) {
         for (Button button : buttons) {
             button.setStyle("-fx-background-color: #ffffff;" +
                     "-fx-text-base-color: #000000;" +
@@ -39,7 +45,7 @@ public class Buttons {
         }
     }
 
-    public static void setDark(@NotNull Button... buttons) {
+    private static void setDark(@NotNull Button... buttons) {
         for (Button button : buttons) {
             button.setStyle("-fx-background-color: #343536;" +
                     "-fx-text-base-color: #ffffff;" +

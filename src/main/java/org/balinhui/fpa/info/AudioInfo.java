@@ -23,12 +23,23 @@ public class AudioInfo {
     }
 
     public long getPortAudioSampleFormat() {
-        return switch (sampleFormat){
+        return switch (sampleFormat) {
             case AV_SAMPLE_FMT_U8, AV_SAMPLE_FMT_U8P -> paUInt8;
             case AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_S16P -> paInt16;
             case AV_SAMPLE_FMT_S32, AV_SAMPLE_FMT_S32P -> paInt32;
             case AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_FLTP -> paFloat32;
             default -> -1;
         };
+    }
+
+    @Override
+    public String toString() {
+        return "AudioInfo{" +
+                "channels=" + channels +
+                ", sampleFormat=" + sampleFormat +
+                ", sampleRate=" + sampleRate +
+                ", metadata=" + metadata +
+                ", durationSeconds=" + durationSeconds +
+                '}';
     }
 }

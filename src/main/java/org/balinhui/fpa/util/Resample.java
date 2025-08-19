@@ -1,5 +1,7 @@
 package org.balinhui.fpa.util;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.balinhui.fpa.info.OutputInfo;
 import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.swresample.SwrContext;
@@ -12,6 +14,7 @@ import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.swresample.*;
 
 public class Resample {
+    private static final Logger logger = LogManager.getLogger(Resample.class);
     private final int dstChannels;
     private final int dstSampleFormat;
     private final int srcSampleRate, dstSampleRate;
@@ -37,13 +40,25 @@ public class Resample {
         AVChannelLayout srcLayout = new AVChannelLayout().nb_channels(srcChannels);
         AVChannelLayout dstLayout = new AVChannelLayout().nb_channels(dstChannels);
         swrCtx = swr_alloc();
-        swr_alloc_set_opts2(
+        if (swrCtx == null) {
+            logger.fatal("SwrContext分配失败");
+            throw new RuntimeException("SwrContext分配失败");
+        }
+        int ret = swr_alloc_set_opts2(
                 swrCtx,
                 dstLayout, dstSampleFormat, dstSampleRate,
                 srcLayout, srcSampleFormat, srcSampleRate,
                 0, null
         );
-        swr_init(swrCtx);
+        if (ret < 0) {
+            logger.fatal("设置选项失败");
+            throw new RuntimeException("设置选项失败");
+        }
+        ret = swr_init(swrCtx);
+        if (ret < 0) {
+            logger.fatal("SwrContext初始化失败");
+            throw new RuntimeException("SwrContext初始化失败");
+        }
     }
 
     public int getPointerSize() {
@@ -51,10 +66,15 @@ public class Resample {
     }
 
     public synchronized int process(BytePointer[] rawData, int samples, PointerPointer<?> srcData) {
+        int ret;
         if (dstSamples == -1) {
             dstSamples = (int) av_rescale_rnd(samples, dstSampleRate, srcSampleRate, AV_ROUND_UP);
             maxDstSamples = dstSamples;
-            av_samples_alloc_array_and_samples(dstData, linSize, dstChannels, dstSamples, dstSampleFormat, 0);
+            ret = av_samples_alloc_array_and_samples(dstData, linSize, dstChannels, dstSamples, dstSampleFormat, 0);
+            if (ret < 0) {
+                logger.fatal("初始分配内存失败");
+                throw new RuntimeException("分配内存失败");
+            }
         }
         dstSamples = (int) av_rescale_rnd(swr_get_delay(swrCtx, srcSampleRate) + samples, dstSampleRate, srcSampleRate, AV_ROUND_UP);
         if (dstSamples > maxDstSamples) {
@@ -64,25 +84,36 @@ public class Resample {
                     dstData.put(i, new BytePointer());
                 }
             }
-            av_samples_alloc(dstData, linSize, dstChannels, dstSamples, dstSampleFormat, 1);
+            ret = av_samples_alloc(dstData, linSize, dstChannels, dstSamples, dstSampleFormat, 1);
+            if (ret < 0) {
+                logger.fatal("分配内存失败");
+                throw new RuntimeException("分配内存失败");
+            }
             maxDstSamples = dstSamples;
         }
         int newSamples = swr_convert(swrCtx, dstData, dstSamples, srcData, samples);
         int bufferSize = av_samples_get_buffer_size(linSize, dstChannels, newSamples, dstSampleFormat, 1);
         for (int i = 0; i < pointerSize; i++) {
-            rawData[i] = new BytePointer(dstData.get(i).position(0).limit(bufferSize));
+            Pointer p = dstData.get(i).position(0).limit(bufferSize);
+            rawData[i] = new BytePointer(p);
         }
         return newSamples;
     }
 
     public synchronized void free() {
         for (int i = 0; i < pointerSize; i++) {
-            if (dstData.get(i) != null) freePointer(dstData.get(i));
+            if (dstData.get(i) != null) {
+                freePointer(dstData.get(i));
+                dstData.get(i).deallocate();
+            }
         }
         av_free(linSize);
         swr_free(swrCtx);
+        linSize.deallocate();//可能会导致崩溃
+        swrCtx.deallocate();
         dstSamples = -1;
         maxDstSamples = -1;
+        logger.trace("释放重采样资源");
     }
 
     private void freePointer(Pointer pointer) {
