@@ -36,9 +36,6 @@ public class Main extends Application {
     public static double currentWidth;
     public static double currentHeight;
 
-    private final Font largeFont = new Font("Microsoft YaHei", 30);
-    private final Font mediumFont = new Font("Microsoft YaHei", 20);
-    private final Font smallFont = new Font("Microsoft YaHei", 15);
     public static final double largeSize = 450;
     public static final double mediumSize = 300;
     public static final double smallSize = 220;
@@ -73,7 +70,7 @@ public class Main extends Application {
         logger.trace("配置右侧面板");
         rightPane.setAlignment(Pos.CENTER);
         rightPane.setPadding(new Insets(0, 10, 0, 0));
-        button.setFont(smallFont);
+        button.setFont(Resources.FontRes.yahei_small_font);
         button.setOnAction(event -> action.ClickButton());
         Buttons.setLightOrDark(false, button);
         rightPane.getChildren().add(button);
@@ -86,6 +83,13 @@ public class Main extends Application {
         root.setStyle("-fx-background-color: transparent");
         root.getChildren().addAll(leftPane, rightPane, progress);
         setAnchorPane();
+
+        Scene scene = new Scene(root, 600, 370);
+        scene.setFill(Color.TRANSPARENT);
+
+        scene.setOnContextMenuRequested(e ->
+                contextMenu.show(stage, e.getScreenX(), e.getScreenY())
+        );
 
         stage.widthProperty().addListener((
                 observableValue,
@@ -105,14 +109,6 @@ public class Main extends Application {
             AnchorPane.setTopAnchor(progress, height);
             changeSize();
         });
-
-
-        Scene scene = new Scene(root, 600, 370);
-        scene.setFill(Color.TRANSPARENT);
-
-        scene.setOnContextMenuRequested(e ->
-                contextMenu.show(stage, e.getScreenX(), e.getScreenY())
-        );
 
         logger.trace("设置stage");
         stage.initStyle(StageStyle.UNIFIED);
@@ -173,8 +169,8 @@ public class Main extends Application {
             rightPane.setPadding(new Insets(0, 30, 0, 0));
             view.setFitHeight(largeSize);
             view.setFitWidth(largeSize);
-            changeLyricsPaneSize(largeSize, largeFont);
-            button.setFont(largeFont);
+            changeLyricsPaneSize(largeSize, Resources.FontRes.yahei_large_font);
+            button.setFont(Resources.FontRes.yahei_large_font);
             level = 3;
         } else if (((currentWidth > 700 && currentWidth <= 1000) &&
                 (currentHeight > 430 && currentHeight <= 618)) &&
@@ -182,16 +178,16 @@ public class Main extends Application {
             rightPane.setPadding(new Insets(0, 20, 0, 0));
             view.setFitHeight(mediumSize);
             view.setFitWidth(mediumSize);
-            changeLyricsPaneSize(mediumSize, mediumFont);
-            button.setFont(mediumFont);
+            changeLyricsPaneSize(mediumSize, Resources.FontRes.yahei_medium_font);
+            button.setFont(Resources.FontRes.yahei_medium_font);
             level = 2;
         } else if ((currentWidth <= 700 || currentHeight <= 430) &&
                 level != 1) {
             rightPane.setPadding(new Insets(0, 10, 0, 0));
             view.setFitHeight(smallSize);
             view.setFitWidth(smallSize);
-            changeLyricsPaneSize(smallSize, smallFont);
-            button.setFont(smallFont);
+            changeLyricsPaneSize(smallSize, Resources.FontRes.yahei_small_font);
+            button.setFont(Resources.FontRes.yahei_small_font);
             level = 1;
         }
     }

@@ -9,9 +9,12 @@ public class Resources {
         public static final Image cover = new Image(Resources.class.getResourceAsStream("/cover.png"));
     }
     public static class FontRes {
-        public static final Font small_font = Font.loadFont(Resources.class.getResourceAsStream("/font/NotoSansSC_bold.ttf"), 15);
-        public static final Font medium_font = Font.loadFont(Resources.class.getResourceAsStream("/font/NotoSansSC_bold.ttf"), 20);
-        public static final Font large_font = Font.loadFont(Resources.class.getResourceAsStream("/font/NotoSansSC_bold.ttf"), 30);
+        public static final Font yahei_small_font = new Font("Microsoft YaHei", 15);
+        public static final Font yahei_medium_font = new Font("Microsoft YaHei", 20);
+        public static final Font yahei_large_font = new Font("Microsoft YaHei", 30);
+        public static final Font noto_small_font = Font.loadFont(Resources.class.getResourceAsStream("/font/NotoSansSC_bold.ttf"), 15);
+        public static final Font noto_medium_font = Font.loadFont(Resources.class.getResourceAsStream("/font/NotoSansSC_bold.ttf"), 20);
+        public static final Font noto_large_font = Font.loadFont(Resources.class.getResourceAsStream("/font/NotoSansSC_bold.ttf"), 30);
     }
     public static class StringRes {
         public static final String app_name = "FPA Player";

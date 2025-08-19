@@ -79,17 +79,17 @@ public class Lyric {
     }
 
     public void setLarge() {
-        this.lyric.setFont(Resources.FontRes.large_font);
+        this.lyric.setFont(Resources.FontRes.noto_large_font);
         setAnimation(-155);
     }
 
     public void setMedium() {
-        this.lyric.setFont(Resources.FontRes.medium_font);
+        this.lyric.setFont(Resources.FontRes.noto_medium_font);
         setAnimation(-100);
     }
 
     public void setSmall() {
-        this.lyric.setFont(Resources.FontRes.small_font);
+        this.lyric.setFont(Resources.FontRes.noto_small_font);
         setAnimation(-70);
     }
 
