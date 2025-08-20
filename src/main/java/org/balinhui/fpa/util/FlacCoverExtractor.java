@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 public class FlacCoverExtractor {
     private static final Logger logger = LogManager.getLogger(FlacCoverExtractor.class);
 
+    private FlacCoverExtractor() {}
+
     /**
      * 获取缺失mimetype的文件的封面如果有
      * @param flacPath 文件路径

@@ -1,6 +1,7 @@
 package org.balinhui.fpa;
 
 import javafx.application.Platform;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.image.Image;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,6 +12,7 @@ import org.balinhui.fpa.core.Player;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.ui.Lyric;
+import org.balinhui.fpa.ui.LyricsPlayer;
 import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.Lyrics;
 
@@ -19,9 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class Action {
     private static final Logger logger = LogManager.getLogger(Action.class);
@@ -30,7 +29,9 @@ public class Action {
     private final Player player;
     private AudioInfo info;
     private final List<Lyric> lyricList = new ArrayList<>();
-    private ScheduledExecutorService executor;
+    private LyricsPlayer lPlayer;
+    public static int playedSamples;//归零在Decoder.java
+    public static volatile double currentTimeSeconds;//同上
 
     private native String[] chooseFiles();
 
@@ -50,7 +51,7 @@ public class Action {
     /**
      * “选择文件”按钮点击事件
      */
-    public void ClickButton() {
+    public void clickChooseFileButton() {
         logger.info("按钮被点击");
         String[] path = chooseFiles();
         if (path == null) {
@@ -59,6 +60,20 @@ public class Action {
         }
         if (path.length == 1) processFile(path[0]);
         else processFiles(path);
+    }
+
+    public void clickPauseButton() {
+        if (CurrentStatus.is(CurrentStatus.Status.PLAYING)) {
+            CurrentStatus.to(CurrentStatus.Status.PAUSE);
+            lPlayer.pause();
+            FPAScreen.pause.setGraphic(FPAScreen.playIcon);
+            logger.info("暂停");
+        } else if (CurrentStatus.is(CurrentStatus.Status.PAUSE)) {
+            CurrentStatus.to(CurrentStatus.Status.PLAYING);
+            lPlayer.resume();
+            FPAScreen.pause.setGraphic(FPAScreen.pauseIcon);
+            logger.info("播放");
+        }
     }
 
     private void processFile(String path) {
@@ -75,7 +90,7 @@ public class Action {
         logger.trace("多选文件");
         info = decoder.read(path);
         logger.trace("读取歌曲第一首信息: {}", path[0]);
-        OutputInfo output = player.readForSameOut(info);
+        OutputInfo output = player.readForSameOut();
         logger.info("取得第一首输出信息：{}", output);
 
 
@@ -110,6 +125,7 @@ public class Action {
             FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
             logger.trace("更新封面");
         }
+        FPAScreen.leftPane.getChildren().add(FPAScreen.control);
         player.start();
     }
 
@@ -119,35 +135,21 @@ public class Action {
 
         FPAScreen.lyricsPane.getChildren().clear();
         lyricList.clear();
-        int currentTime = 0;
+        int currentLine = 0;
         stopLyrics();
-        executor = Executors.newSingleThreadScheduledExecutor();
         logger.trace("歌词初始化");
 
         for (Map.Entry<Long, String> entry : lyrics.entrySet()) {
             long delay = entry.getKey();
             String lyric = entry.getValue();
-            int time = currentTime;
-            lyricList.add(new Lyric(lyric, actionEvent -> lyricsPaneAdd(time + 1)));
-            executor.schedule(() -> addLyrics(time), delay, TimeUnit.MILLISECONDS);
-            currentTime++;
+            int line = currentLine;
+            lyricList.add(new Lyric(lyric, delay, actionEvent -> lyricsPaneAdd(line + 1)));
+            currentLine++;
         }
-        logger.info("歌词线程启动");
         FPAScreen.lyricsPane.getChildren().add(lyricList.getFirst().getLabel());
-    }
-
-    private void addLyrics(int currentLyricLine) {
-        Platform.runLater(() -> {
-            if (currentLyricLine > 1) {
-                FPAScreen.lyricsPane.getChildren().remove(
-                        lyricList.get(currentLyricLine - 2).getLabel()
-                );
-                lyricList.get(currentLyricLine - 1).playGo();
-            } else if (currentLyricLine == 1) {
-                lyricList.getFirst().playGo();
-            }
-            lyricList.get(currentLyricLine).playCome();
-        });
+        lPlayer = new LyricsPlayer(lyricList);
+        lPlayer.play();
+        logger.info("歌词线程启动");
     }
 
     private void lyricsPaneAdd(int currentLyricLine) {
@@ -160,16 +162,18 @@ public class Action {
         });
     }
 
-    public void stopLyrics() {
+    private void stopLyrics() {
         logger.trace("停止歌词线程");
-        if (executor != null)
-            executor.shutdownNow();
+        if (lPlayer != null)
+            lPlayer.stop();
     }
 
-    public void flashProgress() {
+    private void flashProgress(int samples) {
+        playedSamples += samples;
+        currentTimeSeconds = (double) playedSamples / info.sampleRate;
         Platform.runLater(() ->
                 FPAScreen.progress.setProgress(
-                        decoder.getCurrentTimeSeconds() / info.durationSeconds
+                        currentTimeSeconds / info.durationSeconds
                 )
         );
     }
@@ -188,7 +192,8 @@ public class Action {
             FPAScreen.rightPane.getChildren().remove(FPAScreen.lyricsPane);
             FPAScreen.rightPane.getChildren().add(FPAScreen.button);
             FPAScreen.view.setImage(Resources.ImageRes.cover);
-            FPAScreen.progress.setProgress(-1);
+            FPAScreen.progress.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);
+            FPAScreen.leftPane.getChildren().remove(FPAScreen.control);
         });
     }
 

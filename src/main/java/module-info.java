@@ -11,6 +11,6 @@ module org.balinhui.fpa {
     requires org.apache.logging.log4j.core;
 
     exports org.balinhui.fpa to javafx.graphics;
-    exports org.balinhui.fpa.ui to com.sun.jna;
     exports org.balinhui.fpa.util to com.sun.jna;
+    exports org.balinhui.fpa.ui to com.sun.jna, javafx.graphics;
 }

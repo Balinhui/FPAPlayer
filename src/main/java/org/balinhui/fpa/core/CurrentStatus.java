@@ -11,11 +11,21 @@ public class CurrentStatus {
 
     public static synchronized void to(Status status) {
         currentStatus.set(status);
+        CurrentStatus.class.notifyAll();
+    }
+
+    public static synchronized boolean waitUntilNotPaused() throws InterruptedException {
+        boolean flag = false;
+        while (is(Status.PAUSE)) {
+            flag = true;
+            CurrentStatus.class.wait();
+        }
+        return flag;
     }
 
     public enum Status {
         /**
-         * 用于指示播放开始
+         * 用于指示播放开始和播放时
          */
         PLAYING,
 
@@ -25,7 +35,7 @@ public class CurrentStatus {
         STOP,
 
         /**
-         * 暂时还没有用，等待解决歌词问题
+         * 只是暂停
          */
         PAUSE
     }

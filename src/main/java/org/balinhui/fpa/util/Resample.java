@@ -22,7 +22,6 @@ public class Resample {
     private final PointerPointer<BytePointer> dstData;
     private final IntPointer linSize;
     private final SwrContext swrCtx;
-    private final int pointerSize;
 
     public Resample(
             int srcChannels, int srcSampleRate, int srcSampleFormat, OutputInfo info
@@ -31,11 +30,8 @@ public class Resample {
         this.dstChannels = info.channels;
         this.dstSampleRate = info.sampleRate;
         this.dstSampleFormat = info.sampleFormat;
-        this.pointerSize = av_sample_fmt_is_planar(dstSampleFormat) == 1 ? dstChannels : 1;
-        dstData = new PointerPointer<>(pointerSize);
-        for (int i = 0; i < pointerSize; i++) {
-            dstData.put(i, new BytePointer());
-        }
+        dstData = new PointerPointer<>(1);
+        dstData.put(0, new BytePointer());
         linSize = new IntPointer();
         AVChannelLayout srcLayout = new AVChannelLayout().nb_channels(srcChannels);
         AVChannelLayout dstLayout = new AVChannelLayout().nb_channels(dstChannels);
@@ -61,10 +57,6 @@ public class Resample {
         }
     }
 
-    public int getPointerSize() {
-        return pointerSize;
-    }
-
     public synchronized int process(BytePointer[] rawData, int samples, PointerPointer<?> srcData) {
         int ret;
         if (dstSamples == -1) {
@@ -78,12 +70,8 @@ public class Resample {
         }
         dstSamples = (int) av_rescale_rnd(swr_get_delay(swrCtx, srcSampleRate) + samples, dstSampleRate, srcSampleRate, AV_ROUND_UP);
         if (dstSamples > maxDstSamples) {
-            for (int i = 0; i < pointerSize; i++) {
-                if (dstData.get(i) != null) {
-                    freePointer(dstData.get(i));
-                    dstData.put(i, new BytePointer());
-                }
-            }
+            freePointer(dstData.get(0));
+            dstData.put(0, new BytePointer());
             ret = av_samples_alloc(dstData, linSize, dstChannels, dstSamples, dstSampleFormat, 1);
             if (ret < 0) {
                 logger.fatal("分配内存失败");
@@ -93,19 +81,15 @@ public class Resample {
         }
         int newSamples = swr_convert(swrCtx, dstData, dstSamples, srcData, samples);
         int bufferSize = av_samples_get_buffer_size(linSize, dstChannels, newSamples, dstSampleFormat, 1);
-        for (int i = 0; i < pointerSize; i++) {
-            Pointer p = dstData.get(i).position(0).limit(bufferSize);
-            rawData[i] = new BytePointer(p);
-        }
+        Pointer p = dstData.get(0).position(0).limit(bufferSize);
+        rawData[0] = new BytePointer(p);
         return newSamples;
     }
 
     public synchronized void free() {
-        for (int i = 0; i < pointerSize; i++) {
-            if (dstData.get(i) != null) {
-                freePointer(dstData.get(i));
-                dstData.get(i).deallocate();
-            }
+        if (dstData.get(0) != null) {
+            freePointer(dstData.get(0));
+            dstData.get(0).deallocate();
         }
         av_free(linSize);
         swr_free(swrCtx);

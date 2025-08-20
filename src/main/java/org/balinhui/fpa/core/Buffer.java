@@ -38,46 +38,28 @@ public class Buffer {
     }
 
     public static class Data<T> {
-        private final int nb_samples;
-        private final T data;
-        private final DataType type;
+        public final int nb_samples;
+        public final int old_samples;
+        public final T data;
+        public final DataType type;
 
-        private Data(int nb_samples, T data, DataType type) {
+        private Data(int nb_samples, int oldSamples, T data, DataType type) {
             this.nb_samples = nb_samples;
+            this.old_samples = oldSamples;
             this.data = data;
             this.type = type;
         }
 
-        public int getNb_samples() {
-            return nb_samples;
+        public static Data<short[]> of(int nb_samples, int oldSamples, short[] data) {
+            return new Data<>(nb_samples, oldSamples, data, DataType.SHORT);
         }
 
-        public T getData() {
-            return data;
-        }
-
-        public DataType getType() {
-            return type;
-        }
-
-        public static Data<byte[]> of(int nb_samples, byte[] data) {
-            return new Data<>(nb_samples, data, DataType.BYTE);
-        }
-
-        public static Data<short[]> of(int nb_samples, short[] data) {
-            return new Data<>(nb_samples, data, DataType.SHORT);
-        }
-
-        public static Data<int[]> of(int nb_samples, int[] data) {
-            return new Data<>(nb_samples, data, DataType.INTEGER);
-        }
-
-        public static Data<float[]> of(int nb_samples, float[] data) {
-            return new Data<>(nb_samples, data, DataType.FLOAT);
+        public static Data<float[]> of(int nb_samples, int oldSamples, float[] data) {
+            return new Data<>(nb_samples, oldSamples, data, DataType.FLOAT);
         }
     }
 
     public enum DataType {
-        BYTE, SHORT, INTEGER, FLOAT
+        SHORT, FLOAT
     }
 }

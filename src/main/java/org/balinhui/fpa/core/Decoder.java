@@ -2,9 +2,11 @@ package org.balinhui.fpa.core;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.balinhui.fpa.Action;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.util.ArrayLoop;
+import org.balinhui.fpa.util.AudioUtil;
 import org.balinhui.fpa.util.FlacCoverExtractor;
 import org.balinhui.fpa.util.Resample;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -16,7 +18,10 @@ import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVFrame;
-import org.bytedeco.javacpp.*;
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.FloatPointer;
+import org.bytedeco.javacpp.PointerPointer;
+import org.bytedeco.javacpp.ShortPointer;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -38,14 +43,12 @@ public class Decoder implements Runnable, AudioHandler {
     private FinishEvent event;//解码完一首歌后调用
     private Thread decode;//解码线程
 
-    private double currentTime = 0.0;//单首歌播放时长 (秒)
-
     public static Decoder getDecoder() {
         return decoder;
     }
 
     private Decoder() {
-        av_log_set_level(AV_LOG_FATAL);
+        av_log_set_level(AV_LOG_ERROR);
     }
 
     /**
@@ -81,12 +84,12 @@ public class Decoder implements Runnable, AudioHandler {
         try {
             if (avformat_open_input(fmtCtx, path, null, null) < 0) {
                 logger.error("Open file failed");
-                return new AudioInfo(0, 0, 0, null, null, 0F);
+                return new AudioInfo(0, 0, 0, null, null, 0F, false);
             }
             logger.trace("打开文件");
             if (avformat_find_stream_info(fmtCtx, (PointerPointer<?>) null) < 0) {
                 logger.error("Cant find stream info");
-                return new AudioInfo(0, 0, 0, null, null, 0F);
+                return new AudioInfo(0, 0, 0, null, null, 0F, false);
             }
             logger.trace("寻找流信息");
             AVStream stream = null;
@@ -101,7 +104,7 @@ public class Decoder implements Runnable, AudioHandler {
             }
             if (codecPar == null) {
                 logger.error("Doesnt find codec parameter");
-                return new AudioInfo(0, 0, 0, null, null, 0F);
+                return new AudioInfo(0, 0, 0, null, null, 0F, false);
             }
             logger.trace("找到解码器参数");
             byte[] coverData = null;
@@ -128,7 +131,8 @@ public class Decoder implements Runnable, AudioHandler {
                     codecPar.sample_rate(),
                     coverData,
                     getMetadata(fmtCtx, stream),
-                    fmtCtx.duration() / (float) AV_TIME_BASE
+                    fmtCtx.duration() / (float) AV_TIME_BASE,
+                    av_sample_fmt_is_planar(codecPar.format()) == 1
             );
         } finally {
             avformat_close_input(fmtCtx);
@@ -219,7 +223,10 @@ public class Decoder implements Runnable, AudioHandler {
                 throw new RuntimeException("Doesnt find audio stream or decoder");
             }
             AVCodecContext codecCtx = avcodec_alloc_context3(codec);
-            if (codecCtx.isNull()) throw new RuntimeException("Doest allocate context");
+            if (codecCtx.isNull()) {
+                logger.fatal("Doest allocate context");
+                throw new RuntimeException("Doest allocate context");
+            }
             if (avcodec_parameters_to_context(codecCtx, codecPar) < 0) {
                 logger.fatal("Cant copy parameters to context");
                 throw new RuntimeException("Cant copy parameters to context");
@@ -232,7 +239,6 @@ public class Decoder implements Runnable, AudioHandler {
             //重采样所需
             int srcChannels = codecCtx.ch_layout().nb_channels(), dstChannels;
             int srcSampleFormat = codecCtx.sample_fmt(), dstSampleFormat;
-            int pointerSize;
             Resample resample = null;
             final boolean needsResample = outputInfo != null && outputInfo.resample;
             if (needsResample) {
@@ -245,17 +251,14 @@ public class Decoder implements Runnable, AudioHandler {
                         srcSampleFormat,
                         outputInfo
                 );
-                pointerSize = resample.getPointerSize();
             } else {
                 dstChannels = srcChannels;
                 dstSampleFormat = srcSampleFormat;
-                pointerSize = av_sample_fmt_is_planar(dstSampleFormat) == 1 ? dstChannels : 1;
             }
 
             //歌曲部分信息
-            int sampleRate = codecCtx.sample_rate();
-            BytePointer fmtName = av_get_sample_fmt_name(dstSampleFormat);
-            logger.trace("歌曲样本格式: {} ", fmtName.getString());
+            String fmtName = AudioUtil.getSampleFormatName(dstSampleFormat);
+            logger.trace("歌曲样本格式: {} ", fmtName);
 
             AVPacket packet = av_packet_alloc();
             AVFrame frame = av_frame_alloc();
@@ -263,76 +266,51 @@ public class Decoder implements Runnable, AudioHandler {
                 logger.fatal("Cant allocate packet or frame");
                 throw new RuntimeException("Cant allocate packet or frame");
             }
-            BytePointer[] rawData = new BytePointer[pointerSize];
-            long playedSamples = 0;
-            currentTime = 0.0;
+            BytePointer[] rawData = new BytePointer[1];
+            Action.playedSamples = 0;
+            Action.currentTimeSeconds = 0.0;
             mainloop:
-            while (CurrentStatus.is(CurrentStatus.Status.PLAYING)) {
+            while (!CurrentStatus.is(CurrentStatus.Status.STOP)) {
 
-                if (av_read_frame(fmtCtx, packet) < 0) break;
+                if (av_read_frame(fmtCtx, packet) < 0)
+                    break;
                 if (packet.stream_index() == streamIndex) {
                     int ret = avcodec_send_packet(codecCtx, packet);
-                    if (ret < 0) break;
-                    while (avcodec_receive_frame(codecCtx, frame) >= 0) {
-                        int samples = frame.nb_samples();
+                    if (ret < 0)
+                        break;
+                    while (true) {
+                        ret = avcodec_receive_frame(codecCtx, frame);
+                        if (ret == AVERROR_EAGAIN() || ret == AVERROR_EOF)
+                            break;
+                        else if (ret < 0) {
+                            logger.error("Error during decoding");
+                            break mainloop;
+                        }
 
-                        //更新进度
-                        playedSamples += samples;
-                        currentTime = (double) playedSamples / sampleRate;
+                        int samples = frame.nb_samples();
+                        int oldSamples = samples;
 
                         if (needsResample) {
                             samples = resample.process(rawData, samples, frame.data());
                         } else {
-                            for (int i = 0; i < pointerSize; i++) {
-                                rawData[i] = frame.data(i);
-                            }
+                            rawData[0] = frame.data(0);
                         }
                         int arraySize = samples * dstChannels;
 
                         switch (dstSampleFormat) {
-                            case AV_SAMPLE_FMT_U8 -> {
-                                byte[] byteData = ArrayLoop.getArray(arraySize, byte[].class);
-                                byteData = ArrayLoop.reSize(byteData, arraySize);
-                                rawData[0].get(byteData);
-                                buffer.put(Buffer.Data.of(samples, byteData));
-                            }
                             case AV_SAMPLE_FMT_S16 -> {
                                 short[] shortData = ArrayLoop.getArray(arraySize, short[].class);
                                 shortData = ArrayLoop.reSize(shortData, arraySize);
                                 ShortPointer data = new ShortPointer(rawData[0]);
                                 data.get(shortData);
-                                buffer.put(Buffer.Data.of(samples, shortData));
-                            }
-                            case AV_SAMPLE_FMT_S32 -> {
-                                int[] intData = ArrayLoop.getArray(arraySize, int[].class);
-                                intData = ArrayLoop.reSize(intData, arraySize);
-                                IntPointer data = new IntPointer(rawData[0]);
-                                data.get(intData);
-                                buffer.put(Buffer.Data.of(samples, intData));
+                                buffer.put(Buffer.Data.of(samples, oldSamples, shortData));
                             }
                             case AV_SAMPLE_FMT_FLT -> {
                                 float[] floatData = ArrayLoop.getArray(arraySize, float[].class);
                                 floatData = ArrayLoop.reSize(floatData, arraySize);
                                 FloatPointer data = new FloatPointer(rawData[0]);
                                 data.get(floatData);
-                                buffer.put(Buffer.Data.of(samples, floatData));
-                            }
-                            case AV_SAMPLE_FMT_FLTP -> {
-                                float[] floatData = ArrayLoop.getArray(arraySize, float[].class);
-                                floatData = ArrayLoop.reSize(floatData, arraySize);
-                                FloatPointer[] data = new FloatPointer[dstChannels];
-                                for (int i = 0; i < data.length; i++) {
-                                    data[i] = new FloatPointer(rawData[i]);
-                                }
-                                for (int i = 0; i < samples; i++) {
-                                    for (int ch = 0; ch < dstChannels; ch++)
-                                        floatData[i * dstChannels + ch] = data[ch].get(i);
-                                }
-                                buffer.put(Buffer.Data.of(samples, floatData));
-                            }
-                            default -> {
-                                logger.warn("不支持的样本格式: {}", fmtName.getString());
-                                break mainloop;
+                                buffer.put(Buffer.Data.of(samples, oldSamples, floatData));
                             }
                         }
                         av_frame_unref(frame);
@@ -356,6 +334,10 @@ public class Decoder implements Runnable, AudioHandler {
             currentProgress++;
             if (event != null && CurrentStatus.is(CurrentStatus.Status.PLAYING))
                 event.onFinish(currentProgress);
+            if (CurrentStatus.is(CurrentStatus.Status.STOP)) {
+                buffer.clear();
+                logger.info("强制退出，清空缓冲区");
+            }
         }
         CurrentStatus.to(CurrentStatus.Status.STOP);
         currentProgress = 0;
@@ -377,14 +359,5 @@ public class Decoder implements Runnable, AudioHandler {
             decode.start();
             logger.info("解码线程启动");
         }
-    }
-
-
-    /**
-     * 获取当前歌曲播放的秒值
-     * @return 秒值
-     */
-    public double getCurrentTimeSeconds() {
-        return this.currentTime;
     }
 }

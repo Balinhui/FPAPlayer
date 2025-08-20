@@ -3,14 +3,15 @@ package org.balinhui.fpa;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -30,8 +31,13 @@ public class FPAScreen extends Application {
     public static final StackPane lyricsPane = createLyricsPane();
     public static final VBox leftPane = new VBox();
     public static final VBox rightPane = new VBox();
+    public static final AnchorPane root = new AnchorPane();
     public static final ProgressBar progress = new ProgressBar();
     public static final ContextMenu contextMenu = createContextMenu();
+    public static final Button pause = new Button();
+    public static final ImageView pauseIcon = new ImageView(Resources.ImageRes.pause_black);
+    public static final ImageView playIcon = new ImageView(Resources.ImageRes.play_black);
+    public static final HBox control = new HBox();
 
     public static double currentWidth;
     public static double currentHeight;
@@ -65,24 +71,40 @@ public class FPAScreen extends Application {
         clip.setArcWidth(10);
 
         view.setClip(clip);
+
+        pauseIcon.setFitWidth(20);
+        pauseIcon.setFitHeight(20);
+        pauseIcon.setPreserveRatio(true);
+        playIcon.setFitWidth(20);
+        playIcon.setFitHeight(20);
+        playIcon.setPreserveRatio(true);
+        pause.setGraphic(pauseIcon);
+        pause.setPrefWidth(100);
+        Buttons.setLightOrDark(false, pause);
+        pause.setOnAction(e -> action.clickPauseButton());
+
+        control.getChildren().add(pause);
+        control.setPrefHeight(40);
+        control.setAlignment(Pos.CENTER);
+
         leftPane.getChildren().add(view);
 
         logger.trace("配置右侧面板");
         rightPane.setAlignment(Pos.CENTER);
         rightPane.setPadding(new Insets(0, 10, 0, 0));
         button.setFont(Resources.FontRes.yahei_small_font);
-        button.setOnAction(event -> action.ClickButton());
+        button.setOnAction(e -> action.clickChooseFileButton());
         Buttons.setLightOrDark(false, button);
         rightPane.getChildren().add(button);
 
         progress.setPrefHeight(10);
         progress.setPrefWidth(Double.MAX_VALUE);
+        progress.setStyle("-fx-accent: gray");
 
         logger.trace("设置根面板");
-        AnchorPane root = new AnchorPane();
         root.setStyle("-fx-background-color: transparent");
         root.getChildren().addAll(leftPane, rightPane, progress);
-        setAnchorPane();
+        setAnchorPane(true);
 
         Scene scene = new Scene(root, 600, 370);
         scene.setFill(Color.TRANSPARENT);
@@ -96,9 +118,11 @@ public class FPAScreen extends Application {
                 number,
                 t1) -> {
             currentWidth = t1.doubleValue();
-            double half = currentWidth / 2.0;
-            AnchorPane.setRightAnchor(leftPane, half);
-            AnchorPane.setLeftAnchor(rightPane, half);
+            if (root.getChildren().contains(rightPane)) {
+                double half = currentWidth / 2.0;
+                AnchorPane.setRightAnchor(leftPane, half);
+                AnchorPane.setLeftAnchor(rightPane, half);
+            }
             changeSize();
         });
         stage.heightProperty().addListener((
@@ -113,8 +137,8 @@ public class FPAScreen extends Application {
         logger.trace("设置stage");
         stage.initStyle(StageStyle.UNIFIED);
         stage.setTitle(Resources.StringRes.app_name);
-        stage.setMinWidth(600);
-        stage.setMinHeight(370);
+        stage.setMinWidth(280);
+        stage.setMinHeight(310);
         stage.setScene(scene);
         stage.show();
         mainWindow = stage;
@@ -127,22 +151,32 @@ public class FPAScreen extends Application {
         action.exit();
     }
 
-    private void setAnchorPane() {
+    private void setAnchorPane(boolean rightExist) {
+        double wDistance = currentWidth == 0.0 ? 300.0 : currentWidth / 2.0;
+        double hDistance = currentHeight == 0.0 ? 360.0 : currentHeight - 47.0;
+
         AnchorPane.setLeftAnchor(leftPane, 0.0);
         AnchorPane.setLeftAnchor(progress, 0.0);
-        AnchorPane.setLeftAnchor(rightPane, 300.0);
 
-        AnchorPane.setRightAnchor(rightPane, 0.0);
         AnchorPane.setRightAnchor(progress, 0.0);
-        AnchorPane.setRightAnchor(leftPane, 300.0);
 
         AnchorPane.setTopAnchor(leftPane, 0.0);
-        AnchorPane.setTopAnchor(rightPane, 0.0);
-        AnchorPane.setTopAnchor(progress, 360.0);
+        AnchorPane.setTopAnchor(progress, hDistance);
 
         AnchorPane.setBottomAnchor(leftPane, 10.0);
-        AnchorPane.setBottomAnchor(rightPane, 10.0);
         AnchorPane.setBottomAnchor(progress, 0.0);
+
+        if (rightExist) {
+            AnchorPane.setLeftAnchor(rightPane, wDistance);
+
+            AnchorPane.setRightAnchor(rightPane, 0.0);
+            AnchorPane.setRightAnchor(leftPane, wDistance);
+
+            AnchorPane.setTopAnchor(rightPane, 0.0);
+            AnchorPane.setBottomAnchor(rightPane, 10.0);
+        } else {
+            AnchorPane.setRightAnchor(leftPane, 0.0);
+        }
     }
 
     private static StackPane createLyricsPane() {
@@ -169,7 +203,7 @@ public class FPAScreen extends Application {
             rightPane.setPadding(new Insets(0, 30, 0, 0));
             view.setFitHeight(largeSize);
             view.setFitWidth(largeSize);
-            changeLyricsPaneSize(largeSize, Resources.FontRes.yahei_large_font);
+            changeLyricsPaneSize(largeSize);
             button.setFont(Resources.FontRes.yahei_large_font);
             level = 3;
         } else if (((currentWidth > 700 && currentWidth <= 1000) &&
@@ -178,7 +212,7 @@ public class FPAScreen extends Application {
             rightPane.setPadding(new Insets(0, 20, 0, 0));
             view.setFitHeight(mediumSize);
             view.setFitWidth(mediumSize);
-            changeLyricsPaneSize(mediumSize, Resources.FontRes.yahei_medium_font);
+            changeLyricsPaneSize(mediumSize);
             button.setFont(Resources.FontRes.yahei_medium_font);
             level = 2;
         } else if ((currentWidth <= 700 || currentHeight <= 430) &&
@@ -186,24 +220,31 @@ public class FPAScreen extends Application {
             rightPane.setPadding(new Insets(0, 10, 0, 0));
             view.setFitHeight(smallSize);
             view.setFitWidth(smallSize);
-            changeLyricsPaneSize(smallSize, Resources.FontRes.yahei_small_font);
+            changeLyricsPaneSize(smallSize);
             button.setFont(Resources.FontRes.yahei_small_font);
             level = 1;
+        }
+
+        if (currentWidth < 494) {
+            if (root.getChildren().size() == 3) {
+                root.getChildren().remove(1);
+                setAnchorPane(false);
+            }
+        } else {
+            if (root.getChildren().size() == 2) {
+                root.getChildren().add(1, rightPane);
+                setAnchorPane(true);
+            }
         }
     }
 
     /**
      * 变更歌词界面大小
      * @param size 大小
-     * @param font 字体
      */
-    private void changeLyricsPaneSize(double size, Font font) {
+    private void changeLyricsPaneSize(double size) {
         lyricsPane.setPrefWidth(size);
         lyricsPane.setPrefHeight(size);
-        for (Node child : lyricsPane.getChildren()) {
-            Label l = (Label) child;
-            l.setFont(font);
-        }
         Lyric.setCurrentSize(size);
         for (Lyric lyric : action.getLyricList()) {
             if (size == smallSize) lyric.setSmall();
@@ -239,11 +280,20 @@ public class FPAScreen extends Application {
         openDark.selectedProperty().addListener((
                 observableValue,
                 old, open) -> {
-            Buttons.setLightOrDark(open, button);
+            Buttons.setLightOrDark(open, button, pause);
+            if (open) {
+                playIcon.setImage(Resources.ImageRes.play_white);
+                pauseIcon.setImage(Resources.ImageRes.pause_white);
+            } else {
+                playIcon.setImage(Resources.ImageRes.play_black);
+                pauseIcon.setImage(Resources.ImageRes.pause_black);
+            }
             Windows.setLightOrDark(mainWindow, open);
             Lyric.setDark(open);
             for (Lyric lyric : action.getLyricList()) {
-                if (lyric.getLabel() == lyricsPane.getChildren().get(1))
+                int index = 1;
+                if (lyricsPane.getChildren().size() == 1) index = 0;
+                if (lyric.getLabel() == lyricsPane.getChildren().get(index))
                     lyric.setHighLight(open);
                 else lyric.setMode(open);
             }

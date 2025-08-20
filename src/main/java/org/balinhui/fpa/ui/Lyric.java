@@ -16,6 +16,7 @@ import org.balinhui.fpa.Resources;
 
 public class Lyric {
     private final Label lyric;
+    private long time;
     private ParallelTransition come;
     private ParallelTransition go;
     private final GaussianBlur blur = new GaussianBlur();
@@ -24,10 +25,10 @@ public class Lyric {
     private final EventHandler<ActionEvent> eventHandler;
 
     private static final Paint GRAY_WHITE = Color.rgb(190, 190, 190);
-    private static final Paint GRAY_DARK = Color.rgb(60, 63, 65);
+    private static final Paint GRAY_DARK = Color.rgb(65, 65, 65);
 
 
-    public Lyric(String context, EventHandler<ActionEvent> eventHandler) {
+    public Lyric(String context, long time, EventHandler<ActionEvent> eventHandler) {
         this.lyric = new Label(context);
         this.lyric.setAlignment(Pos.CENTER);
         this.lyric.setTextAlignment(TextAlignment.CENTER);
@@ -46,6 +47,15 @@ public class Lyric {
         }
         this.blur.setRadius(2.5);
         this.lyric.setEffect(blur);
+        this.time = time;
+    }
+
+    public long getTime() {
+        return this.time;
+    }
+
+    public void increaseTime(long time) {
+        this.time += time;
     }
 
     public Label getLabel() {

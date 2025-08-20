@@ -6,8 +6,10 @@ import org.apache.logging.log4j.Logger;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.util.ArrayLoop;
+import org.balinhui.fpa.util.AudioUtil;
 import org.balinhui.portaudio.*;
 
+import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLT;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_S16;
 
 public class Player implements Runnable, AudioHandler {
@@ -69,7 +71,7 @@ public class Player implements Runnable, AudioHandler {
      * @return 播放时的输出信息
      */
     public OutputInfo read(AudioInfo audioInfo) {
-        int channels = audioInfo.channels, sampleRate = audioInfo.sampleRate;
+        int channels = audioInfo.channels, sampleRate = audioInfo.sampleRate, sampleFormat = audioInfo.sampleFormat;
         boolean resample = false;
         if (audioInfo.channels > maxOutputChannels || audioInfo.sampleRate > maxOutputSampleRate) {
             channels = Math.min(audioInfo.channels, maxOutputChannels);
@@ -77,9 +79,24 @@ public class Player implements Runnable, AudioHandler {
             resample = true;
         }
 
-        openStream(channels, audioInfo.getPortAudioSampleFormat(), sampleRate);
+        if (audioInfo.isPlanar) {
+            logger.info("格式 {} 为非平面格式，转化为平面格式",
+                    AudioUtil.getSampleFormatName(sampleFormat));
+            resample = true;
+        }
 
-        return new OutputInfo(resample, channels, sampleRate, audioInfo.sampleFormat);
+        if (!AudioUtil.isSupport(sampleFormat)) {
+            logger.info("格式 {} 不支持，转化为 {}",
+                    AudioUtil.getSampleFormatName(sampleFormat),
+                    AudioUtil.getSampleFormatName(AV_SAMPLE_FMT_FLT)
+                    );
+            sampleFormat = AV_SAMPLE_FMT_FLT;
+            resample = true;
+        }
+
+        openStream(channels, AudioUtil.getPortAudioSampleFormat(sampleFormat), sampleRate);
+
+        return new OutputInfo(resample, channels, sampleRate, AudioUtil.getSampleFormatNoPlanar(sampleFormat));
     }
 
     /**
@@ -87,16 +104,16 @@ public class Player implements Runnable, AudioHandler {
      * channels: 2<br>
      * sampleRate: 44100Hz<br>
      * sampleFormat: AV_SAMPLE_FMT_S16(FFmpeg), paInt16(PortAudio)
-     * @param audioInfo 歌曲信息
      * @return 播放时的输出信息
      */
-    public OutputInfo readForSameOut(AudioInfo audioInfo) {
-        int channels = 2, sampleRate = 44100, sampleFormat = AV_SAMPLE_FMT_S16;
-        boolean resample = audioInfo.channels != channels || audioInfo.sampleRate != sampleRate || audioInfo.sampleFormat != sampleFormat;
+    public OutputInfo readForSameOut() {
+        int channels = 2;
+        int sampleRate = 44100;
+        boolean resample = true;
 
         openStream(channels, PaSampleFormat.paInt16, sampleRate);
 
-        return new OutputInfo(resample, channels, sampleRate, sampleFormat);
+        return new OutputInfo(resample, channels, sampleRate, AV_SAMPLE_FMT_S16);
     }
 
     /**
@@ -119,7 +136,7 @@ public class Player implements Runnable, AudioHandler {
                 null,
                 parameters,
                 sampleRate,
-                256,
+                PortAudio.paFramesPerBufferUnspecified,
                 PaStreamFlags.paNoFlag,
                 null,
                 null
@@ -137,33 +154,40 @@ public class Player implements Runnable, AudioHandler {
      */
     @Override
     public void run() {
-        pa.Pa_StartStream(stream);
-        int err = PortAudio.paNoError;
-        while (!buffer.isEmpty() || CurrentStatus.is(CurrentStatus.Status.PLAYING)) {//当解码完成同时缓冲区内没有数据时才停止
+        int err = pa.Pa_StartStream(stream);
+        if (err != PortAudio.paNoError) {
+            logger.fatal("开始流失败");
+            throw new RuntimeException("开始流失败");
+        }
+        while (!buffer.isEmpty() || !CurrentStatus.is(CurrentStatus.Status.STOP)) {//当解码完成同时缓冲区内没有数据时才停止
+            boolean paused;//用于判断是否暂停了的标识，如果是从暂停中启动，则为true。防止提前退出
+            try {
+                paused = CurrentStatus.waitUntilNotPaused();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            if (CurrentStatus.is(CurrentStatus.Status.STOP) && paused) {
+                buffer.clear();
+                break;
+            }
+
             Buffer.Data<?> data = buffer.take();
             if (start != null)
-                start.handler();
-            switch (data.getType()) {
-                case BYTE -> {
-                    err = pa.Pa_WriteStream(stream, (byte[]) data.getData(), data.getNb_samples());
-                    ArrayLoop.returnArray((byte[]) data.getData());
-                }
+                start.handler(data.old_samples);
+            switch (data.type) {
                 case SHORT -> {
-                    err = pa.Pa_WriteStream(stream, (short[]) data.getData(), data.getNb_samples());
-                    ArrayLoop.returnArray((short[]) data.getData());
-                }
-                case INTEGER -> {
-                    err = pa.Pa_WriteStream(stream, (int[]) data.getData(), data.getNb_samples());
-                    ArrayLoop.returnArray((int[]) data.getData());
+                    err = pa.Pa_WriteStream(stream, (short[]) data.data, data.nb_samples);
+                    ArrayLoop.returnArray((short[]) data.data);
                 }
                 case FLOAT -> {
-                    err = pa.Pa_WriteStream(stream, (float[]) data.getData(), data.getNb_samples());
-                    ArrayLoop.returnArray((float[]) data.getData());
+                    err = pa.Pa_WriteStream(stream, (float[]) data.data, data.nb_samples);
+                    ArrayLoop.returnArray((float[]) data.data);
                 }
             }
             if (err != PortAudio.paNoError) {
                 logger.fatal("Write stream failed: {}", pa.Pa_GetErrorText(err));
-                throw new RuntimeException("Write stream failed: " + pa.Pa_GetErrorText(err));
+                if (err != -9980)//放过Output underflowed一马
+                    throw new RuntimeException("Write stream failed: " + pa.Pa_GetErrorText(err));
             }
         }
         stop();
@@ -220,6 +244,6 @@ public class Player implements Runnable, AudioHandler {
 
     @FunctionalInterface
     public interface PlaySample {
-        void handler();
+        void handler(int samples);
     }
 }

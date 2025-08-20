@@ -8,6 +8,8 @@ public class Win32 {
     private static HWND hWnd;
     private static Stage stageCache;
 
+    private Win32() {}
+
     public static HWND getHWND(Stage stage) {
         if (!stage.equals(stageCache)) {
             hWnd = User32.INSTANCE.FindWindow(null, stage.getTitle());
