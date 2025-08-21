@@ -37,8 +37,8 @@ public class Action {
     }
 
     private Action() {
-        System.loadLibrary("FileChooser");
-        logger.trace("加载FileChooser库");
+        System.loadLibrary("file_chooser");
+        logger.trace("加载file_chooser库");
         decoder = Decoder.getDecoder();
         player = Player.getPlayer();
         player.setOnFinished(args -> finish());

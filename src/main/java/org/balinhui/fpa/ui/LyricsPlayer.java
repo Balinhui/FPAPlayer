@@ -10,7 +10,6 @@ public class LyricsPlayer {
     private final List<Lyric> lyrics;
     private int currentIndex = 0;
     private long startTime = 0;
-    private long pauseTime = 0;
     private volatile boolean playing = false;
 
     public LyricsPlayer(List<Lyric> lyrics) {
@@ -25,18 +24,13 @@ public class LyricsPlayer {
     public void pause() {
         if (!playing) return;
         playing = false;
-        pauseTime = System.currentTimeMillis();
     }
 
     public void resume() {
         playing = true;
-        if (pauseTime == 0)
-            startTime = System.currentTimeMillis();
-        else {
-            startTime = (long) (System.currentTimeMillis() - Action.currentTimeSeconds * 1000);
-        }
         Thread thread = new Thread(this::loop);
         thread.setName("Lyrics Thread");
+        startTime = (long) (System.currentTimeMillis() - Action.currentTimeSeconds * 1000);
         thread.start();
     }
 
@@ -45,7 +39,6 @@ public class LyricsPlayer {
     }
 
     private long getCurrentPosition() {
-        if (!playing) return pauseTime;
         return System.currentTimeMillis() - startTime;
     }
 
