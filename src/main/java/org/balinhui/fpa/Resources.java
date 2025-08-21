@@ -6,11 +6,11 @@ import javafx.scene.text.Font;
 @SuppressWarnings("all")
 public class Resources {
     public static class ImageRes {
-        public static final Image cover = new Image(Resources.class.getResourceAsStream("/cover.png"));
-        public static final Image play_black = new Image(Resources.class.getResourceAsStream("/play_black.png"));
-        public static final Image pause_black = new Image(Resources.class.getResourceAsStream("/pause_black.png"));
-        public static final Image play_white = new Image(Resources.class.getResourceAsStream("/play_white.png"));
-        public static final Image pause_white = new Image(Resources.class.getResourceAsStream("/pause_white.png"));
+        public static final Image cover = new Image(Resources.class.getResourceAsStream("/image/cover.png"));
+        public static final Image play_black = new Image(Resources.class.getResourceAsStream("/image/play_black.png"));
+        public static final Image pause_black = new Image(Resources.class.getResourceAsStream("/image/pause_black.png"));
+        public static final Image play_white = new Image(Resources.class.getResourceAsStream("/image/play_white.png"));
+        public static final Image pause_white = new Image(Resources.class.getResourceAsStream("/image/pause_white.png"));
     }
     public static class FontRes {
         public static final Font yahei_small_font = new Font("Microsoft YaHei", 15);
