@@ -25,7 +25,7 @@ import org.balinhui.fpa.ui.Windows;
 public class FPAScreen extends Application {
     private static final Logger logger = LogManager.getLogger(FPAScreen.class);
     public static Stage mainWindow;
-    public static Dialog<String> settingWindow;
+    public static Dialog<SettingResult> settingWindow;
     public static final ImageView view = new ImageView(Resources.ImageRes.cover);
     public static final Button button = new Button(Resources.StringRes.button_name);
     public static final StackPane lyricsPane = createLyricsPane();
@@ -138,7 +138,7 @@ public class FPAScreen extends Application {
         stage.initStyle(StageStyle.UNIFIED);
         stage.setTitle(Resources.StringRes.app_name);
         stage.setMinWidth(280);
-        stage.setMinHeight(310);
+        stage.setMinHeight(340);
         stage.setScene(scene);
         stage.show();
         mainWindow = stage;
@@ -276,7 +276,7 @@ public class FPAScreen extends Application {
         openDark.setSelected(false);
         Menu moreStylesMenu = new Menu(Resources.StringRes.more_styles_item);
 
-        openSetting.setOnAction(actionEvent -> settingWindow.show());
+        openSetting.setOnAction(actionEvent -> action.settingResult(settingWindow.showAndWait()));
         openDark.selectedProperty().addListener((
                 observableValue,
                 old, open) -> {
@@ -340,11 +340,22 @@ public class FPAScreen extends Application {
         return menu;
     }
 
-    private Dialog<String> createSettingWindow() {
-        Dialog<String> dialog = new Dialog<>();
+    private Dialog<SettingResult> createSettingWindow() {
+        Dialog<SettingResult> dialog = new Dialog<>();
         dialog.setTitle(Resources.StringRes.setting_item);
         dialog.setWidth(400);
         dialog.setHeight(300);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                return SettingResult.OK;
+            } else if (buttonType.getButtonData() == ButtonBar.ButtonData.APPLY) {
+                return SettingResult.APPLY;
+            } else if (buttonType.getButtonData() == ButtonBar.ButtonData.CANCEL_CLOSE) {
+                return SettingResult.CANCEL;
+            }
+            return null;
+        });
 
         DialogPane pane = dialog.getDialogPane();
         StackPane context = new StackPane();
@@ -354,8 +365,12 @@ public class FPAScreen extends Application {
         context.getChildren().add(new Text("啥也没有"));
 
         pane.setContent(context);
-        pane.getButtonTypes().addAll(ButtonType.OK);
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.APPLY, ButtonType.CANCEL);
 
         return dialog;
+    }
+
+    public enum SettingResult {
+        OK, APPLY, CANCEL
     }
 }

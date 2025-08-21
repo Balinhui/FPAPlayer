@@ -17,10 +17,7 @@ import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.Lyrics;
 
 import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class Action {
     private static final Logger logger = LogManager.getLogger(Action.class);
@@ -166,6 +163,13 @@ public class Action {
         logger.trace("停止歌词线程");
         if (lPlayer != null)
             lPlayer.stop();
+    }
+
+    public void settingResult(Optional<FPAScreen.SettingResult> result) {
+        result.ifPresentOrElse(settingResult ->
+            logger.info("选择了: {}", settingResult), () ->
+            logger.warn("非法结果")
+        );
     }
 
     private void flashProgress(int samples) {

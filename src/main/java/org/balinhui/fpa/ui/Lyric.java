@@ -16,7 +16,7 @@ import org.balinhui.fpa.Resources;
 
 public class Lyric {
     private final Label lyric;
-    private long time;
+    private final long time;
     private ParallelTransition come;
     private ParallelTransition go;
     private final GaussianBlur blur = new GaussianBlur();
@@ -52,10 +52,6 @@ public class Lyric {
 
     public long getTime() {
         return this.time;
-    }
-
-    public void increaseTime(long time) {
-        this.time += time;
     }
 
     public Label getLabel() {
