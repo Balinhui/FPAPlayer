@@ -48,6 +48,8 @@ public class FPAScreen extends Application {
 
     private int level = 1;//当前控件尺寸等级 共有3级
 
+    private static int distance = 47;
+
     private static Action action;
 
     @Override
@@ -129,7 +131,7 @@ public class FPAScreen extends Application {
                 observableValue,
                 number, t1) -> {
             currentHeight = t1.doubleValue();
-            double height = currentHeight - 47;
+            double height = currentHeight - distance;
             AnchorPane.setTopAnchor(progress, height);
             changeSize();
         });
@@ -141,6 +143,7 @@ public class FPAScreen extends Application {
         stage.setMinHeight(340);
         stage.setScene(scene);
         stage.show();
+        stage.setFullScreenExitHint("");
         mainWindow = stage;
         Windows.setEffect(stage, DwmAPI.DWM_SYSTEMBACKDROP_TYPE.DWMSBT_TRANSIENTWINDOW);
         settingWindow = createSettingWindow();
@@ -250,9 +253,22 @@ public class FPAScreen extends Application {
             if (size == smallSize) lyric.setSmall();
             else if (size == mediumSize) lyric.setMedium();
             else if (size == largeSize) lyric.setLarge();
+            if (action.getLyricList().size() == 1) {
+                if (lyric.getLabel() == lyricsPane.getChildren().getFirst())
+                    lyric.mediumLocation();
+            } else {
+                if (lyric.getLabel() == lyricsPane.getChildren().getFirst())
+                    lyric.topLocation();
+                else if (lyric.getLabel() == lyricsPane.getChildren().get(1))
+                    lyric.mediumLocation();
+            }
         }
     }
 
+    /**
+     * 右键上下文菜单
+     * @return ContextMenu实例
+     */
     private static ContextMenu createContextMenu() {
         String lightMenu = "-fx-background-radius: 5;" +
                 "-fx-border-radius: 5;" +
@@ -268,42 +284,49 @@ public class FPAScreen extends Application {
                 "-fx-padding: 3;";
         String lightItem = "-fx-text-fill: black;";
         String darkItem = "-fx-text-fill: white;";
-        ContextMenu menu = new ContextMenu();
+        ContextMenu menu = new ContextMenu();//总菜单
         menu.setStyle(lightMenu);
 
+        //创建菜单项
         MenuItem openSetting = new MenuItem(Resources.StringRes.setting_item);
+        CheckMenuItem fullScreen = new CheckMenuItem(Resources.StringRes.full_screen_item);
+        fullScreen.setSelected(false);
         CheckMenuItem openDark = new CheckMenuItem(Resources.StringRes.open_dark_mode_item);
         openDark.setSelected(false);
         Menu moreStylesMenu = new Menu(Resources.StringRes.more_styles_item);
 
+        //设置菜单项
         openSetting.setOnAction(actionEvent -> action.settingResult(settingWindow.showAndWait()));
+        fullScreen.selectedProperty().addListener((
+                observable,
+                oldValue, newValue) -> {
+            if (newValue) distance = 10;
+            else distance = 47;
+            mainWindow.setFullScreen(newValue);
+        });
         openDark.selectedProperty().addListener((
                 observableValue,
                 old, open) -> {
-            Buttons.setLightOrDark(open, button, pause);
-            if (open) {
-                playIcon.setImage(Resources.ImageRes.play_white);
-                pauseIcon.setImage(Resources.ImageRes.pause_white);
-            } else {
-                playIcon.setImage(Resources.ImageRes.play_black);
-                pauseIcon.setImage(Resources.ImageRes.pause_black);
-            }
-            Windows.setLightOrDark(mainWindow, open);
-            Lyric.setDark(open);
-            for (Lyric lyric : action.getLyricList()) {
+            Buttons.setLightOrDark(open, button, pause);//按钮背景变色
+            Windows.setLightOrDark(mainWindow, open);//窗口背景变色
+            Lyric.setDark(open);//歌词默认颜色改变
+            for (Lyric lyric : action.getLyricList()) {//当前歌词颜色改变
                 int index = 1;
                 if (lyricsPane.getChildren().size() == 1) index = 0;
                 if (lyric.getLabel() == lyricsPane.getChildren().get(index))
-                    lyric.setHighLight(open);
+                    lyric.setModeForHighLight(open);
                 else lyric.setMode(open);
             }
             if (open) {
+                playIcon.setImage(Resources.ImageRes.play_white);
+                pauseIcon.setImage(Resources.ImageRes.pause_white);
                 menu.setStyle(darkMenu);
                 for (MenuItem item : menu.getItems()) {
                     item.setStyle(darkItem);
                 }
-            }
-            else {
+            } else {
+                playIcon.setImage(Resources.ImageRes.play_black);
+                pauseIcon.setImage(Resources.ImageRes.pause_black);
                 menu.setStyle(lightMenu);
                 for (MenuItem item : menu.getItems()) {
                     item.setStyle(lightItem);
@@ -334,6 +357,7 @@ public class FPAScreen extends Application {
         menu.getItems().addAll(
                 openSetting,
                 new SeparatorMenuItem(),
+                fullScreen,
                 openDark,
                 moreStylesMenu
         );

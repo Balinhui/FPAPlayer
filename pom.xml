@@ -6,7 +6,7 @@
 
     <groupId>org.balinhui</groupId>
     <artifactId>FPA</artifactId>
-    <version>1.0</version>
+    <version>1.2</version>
     <name>FPA</name>
 
     <properties>

@@ -194,6 +194,11 @@ public class Decoder implements Runnable, AudioHandler {
         CurrentStatus.to(CurrentStatus.Status.PLAYING);
         logger.info("设置当前状态为: {}", CurrentStatus.is(CurrentStatus.Status.PLAYING) ? "PLAYING" : "STOP");
         for (String path : paths) {
+            //初始化时间
+            Action.playedSamples = 0;
+            Action.currentTimeSeconds = 0.0;
+            logger.info("时间轴初始化");
+
             if (path == null) {
                 logger.warn("路径为null");
                 return;
@@ -267,8 +272,6 @@ public class Decoder implements Runnable, AudioHandler {
                 throw new RuntimeException("Cant allocate packet or frame");
             }
             BytePointer[] rawData = new BytePointer[1];
-            Action.playedSamples = 0;
-            Action.currentTimeSeconds = 0.0;
             mainloop:
             while (!CurrentStatus.is(CurrentStatus.Status.STOP)) {
 

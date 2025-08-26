@@ -106,19 +106,61 @@ public class Lyric {
         ScaleTransition scaleCome = new ScaleTransition(Duration.millis(200), lyric);
         scaleCome.setFromX(1);
         scaleCome.setFromY(1);
-        scaleCome.setToX(1.02);
-        scaleCome.setToY(1.02);
+        scaleCome.setToX(1.01);
+        scaleCome.setToY(1.01);
         this.come = new ParallelTransition(translateCome, scaleCome);
         this.come.setOnFinished(eventHandler);
         TranslateTransition translateGo = new TranslateTransition(Duration.millis(200), lyric);
         translateGo.setFromY(toY);
         translateGo.setToY(2 * toY);
         ScaleTransition scaleGo = new ScaleTransition(Duration.millis(200), lyric);
-        scaleGo.setFromX(1.02);
-        scaleGo.setFromY(1.02);
+        scaleGo.setFromX(1.01);
+        scaleGo.setFromY(1.01);
         scaleGo.setToX(1);
         scaleGo.setToY(1);
         this.go = new ParallelTransition(translateGo, scaleGo);
+    }
+
+    public void topLocation() {
+        switch (currentSize) {
+            case 1 -> topTrans(-70);
+            case 2 -> topTrans(-100);
+            case 3 -> topTrans(-155);
+        }
+    }
+
+    private void topTrans(double y) {
+        TranslateTransition tra = new TranslateTransition(Duration.ONE, lyric);
+        tra.setFromY(2 * y);
+        tra.setToY(2 * y);
+        ScaleTransition sca = new ScaleTransition(Duration.ONE, lyric);
+        sca.setFromX(1);
+        sca.setFromY(1);
+        sca.setToX(1);
+        sca.setToY(1);
+        ParallelTransition par = new ParallelTransition(tra, sca);
+        par.play();
+    }
+
+    public void mediumLocation() {
+        switch (currentSize) {
+            case 1 -> mediumTrans(-70);
+            case 2 -> mediumTrans(-100);
+            case 3 -> mediumTrans(-155);
+        }
+    }
+
+    private void mediumTrans(double y) {
+        TranslateTransition tra = new TranslateTransition(Duration.ONE, lyric);
+        tra.setFromY(y);
+        tra.setToY(y);
+        ScaleTransition sca = new ScaleTransition(Duration.ONE, lyric);
+        sca.setFromX(1.01);
+        sca.setFromY(1.01);
+        sca.setToX(1.01);
+        sca.setToY(1.01);
+        ParallelTransition par = new ParallelTransition(tra, sca);
+        par.play();
     }
 
     public void setMode(boolean flag) {
@@ -129,7 +171,7 @@ public class Lyric {
         }
     }
 
-    public void setHighLight(boolean flag) {
+    public void setModeForHighLight(boolean flag) {
         if (flag) {
             this.lyric.setTextFill(Color.WHITE);
         } else {

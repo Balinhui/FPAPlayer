@@ -15,6 +15,7 @@ import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.LyricsPlayer;
 import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.Lyrics;
+import org.balinhui.fpa.util.CoverColorExtractor;
 
 import java.io.ByteArrayInputStream;
 import java.util.*;
@@ -101,6 +102,7 @@ public class Action {
                     if (info.cover != null) {
                         FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
                         logger.trace("更新封面");
+                        FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
                     }
                 });
             }
@@ -121,6 +123,7 @@ public class Action {
         if (info.cover != null) {
             FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
             logger.trace("更新封面");
+            FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
         }
         FPAScreen.leftPane.getChildren().add(FPAScreen.control);
         player.start();
@@ -196,6 +199,7 @@ public class Action {
             FPAScreen.rightPane.getChildren().remove(FPAScreen.lyricsPane);
             FPAScreen.rightPane.getChildren().add(FPAScreen.button);
             FPAScreen.view.setImage(Resources.ImageRes.cover);
+            FPAScreen.progress.setStyle("-fx-accent: gray");
             FPAScreen.progress.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);
             FPAScreen.leftPane.getChildren().remove(FPAScreen.control);
         });
