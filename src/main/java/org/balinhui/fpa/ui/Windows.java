@@ -3,6 +3,8 @@ package org.balinhui.fpa.ui;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
 import javafx.stage.Stage;
+import org.balinhui.fpa.apis.DwmAPI;
+import org.balinhui.fpa.apis.Share;
 import org.balinhui.fpa.util.Win32;
 
 public class Windows {
@@ -32,14 +34,14 @@ public class Windows {
 
     private static void extendFrameIntoClientArea(HWND hWnd, int left, int right, int top, int bottom) {
         DwmAPI.Margins margins = new DwmAPI.Margins(left, right, top, bottom);
-        if (api.DwmExtendFrameIntoClientArea(hWnd, margins).intValue() != 0) {
+        if (api.DwmExtendFrameIntoClientArea(hWnd, margins).intValue() != Share.S_OK) {
             throw new RuntimeException("设置工作区失败");
         }
     }
 
     private static void setWindowAttribute(HWND hWnd, int dwAttribute, int pvAttribute) {
         IntByReference type = new IntByReference(pvAttribute);
-        if (api.DwmSetWindowAttribute(hWnd, dwAttribute, type, 4).intValue() != 0) {
+        if (api.DwmSetWindowAttribute(hWnd, dwAttribute, type, 4).intValue() != Share.S_OK) {
             throw new RuntimeException("设置效果失败");
         }
     }

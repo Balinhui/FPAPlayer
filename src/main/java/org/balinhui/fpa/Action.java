@@ -13,9 +13,10 @@ import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.LyricsPlayer;
+import org.balinhui.fpa.ui.Taskbar;
 import org.balinhui.fpa.util.ArrayLoop;
-import org.balinhui.fpa.util.Lyrics;
 import org.balinhui.fpa.util.CoverColorExtractor;
+import org.balinhui.fpa.util.Lyrics;
 
 import java.io.ByteArrayInputStream;
 import java.util.*;
@@ -38,6 +39,7 @@ public class Action {
     }
 
     private Action() {
+        //将这个充当初始化
         System.loadLibrary("file_chooser");
         logger.trace("加载file_chooser库");
         decoder = Decoder.getDecoder();
@@ -125,6 +127,11 @@ public class Action {
             logger.trace("更新封面");
             FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
         }
+
+        if (!Taskbar.init()) {
+            logger.error("任务栏进度条初始化失败");
+        }
+
         FPAScreen.leftPane.getChildren().add(FPAScreen.control);
         player.start();
     }
@@ -178,11 +185,13 @@ public class Action {
     private void flashProgress(int samples) {
         playedSamples += samples;
         currentTimeSeconds = (double) playedSamples / info.sampleRate;
+        double progress = currentTimeSeconds / info.durationSeconds;
         Platform.runLater(() ->
                 FPAScreen.progress.setProgress(
-                        currentTimeSeconds / info.durationSeconds
+                        progress
                 )
         );
+        Taskbar.setProgress(FPAScreen.mainWindow, progress);
     }
 
     public List<Lyric> getLyricList() {
@@ -193,8 +202,9 @@ public class Action {
      * 尝试将播放结束后的处理集中在此，不知是否有遗漏
      */
     public void finish() {
-        logger.trace("歌曲结束");
+        logger.trace("(所有)歌曲结束");
         stopLyrics();
+        Taskbar.release();
         Platform.runLater(() -> {
             FPAScreen.rightPane.getChildren().remove(FPAScreen.lyricsPane);
             FPAScreen.rightPane.getChildren().add(FPAScreen.button);

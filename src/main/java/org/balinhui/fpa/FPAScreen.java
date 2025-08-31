@@ -17,8 +17,8 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.balinhui.fpa.apis.DwmAPI;
 import org.balinhui.fpa.ui.Buttons;
-import org.balinhui.fpa.ui.DwmAPI;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.Windows;
 

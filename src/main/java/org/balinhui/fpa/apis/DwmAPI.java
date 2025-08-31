@@ -1,4 +1,4 @@
-package org.balinhui.fpa.ui;
+package org.balinhui.fpa.apis;
 
 import com.sun.jna.Native;
 import com.sun.jna.Structure;

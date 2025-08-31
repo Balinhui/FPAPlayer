@@ -1,5 +1,6 @@
 package org.balinhui.fpa.util;
 
+import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import javafx.stage.Stage;
@@ -16,5 +17,9 @@ public class Win32 {
             stageCache = stage;
         }
         return hWnd;
+    }
+
+    public static long getLongHWND(Stage stage) {
+        return Pointer.nativeValue(getHWND(stage).getPointer());
     }
 }
