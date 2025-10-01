@@ -14,9 +14,9 @@
 
     <Loggers>
         <!-- 应用程序日志 -->
-        <Root level="info">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="FileLogger"/>
+        <Root level="trace">
+            <AppenderRef ref="Console" level="trace"/>
+            <AppenderRef ref="FileLogger" level="info"/>
         </Root>
     </Loggers>
 </Configuration>

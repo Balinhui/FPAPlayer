@@ -6,6 +6,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -17,7 +18,8 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.balinhui.fpa.apis.DwmAPI;
+import org.balinhui.fpa.info.SystemInfo;
+import org.balinhui.fpa.nativeapis.DwmAPI;
 import org.balinhui.fpa.ui.Buttons;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.Windows;
@@ -48,14 +50,14 @@ public class FPAScreen extends Application {
 
     private int level = 1;//当前控件尺寸等级 共有3级
 
-    private static int distance = 47;
+    private static int distance = 47;//进度条到底部的距离，包含窗口和控件之间的差
 
     private static Action action;
 
     @Override
     public void init() {
         logger.trace("获取Action实例");
-        action = Action.getInstance();
+        action = Action.initialize();
     }
 
     @Override
@@ -103,14 +105,11 @@ public class FPAScreen extends Application {
         progress.setPrefWidth(Double.MAX_VALUE);
         progress.setStyle("-fx-accent: gray");
 
-        logger.trace("设置根面板");
-        root.setStyle("-fx-background-color: transparent");
+        logger.trace("控件添加进根面板");
         root.getChildren().addAll(leftPane, rightPane, progress);
         setAnchorPane(true);
 
         Scene scene = new Scene(root, 600, 370);
-        scene.setFill(Color.TRANSPARENT);
-
         scene.setOnContextMenuRequested(e ->
                 contextMenu.show(stage, e.getScreenX(), e.getScreenY())
         );
@@ -137,15 +136,29 @@ public class FPAScreen extends Application {
         });
 
         logger.trace("设置stage");
-        stage.initStyle(StageStyle.UNIFIED);
+        if (SystemInfo.systemInfo.version >= DwmAPI.SUPPORT_API_VERSION) {
+            logger.trace("将组件透明，去掉窗口装饰");
+            root.setStyle("-fx-background-color: transparent");
+            scene.setFill(Color.TRANSPARENT);
+            stage.initStyle(StageStyle.UNIFIED);
+        }
         stage.setTitle(Resources.StringRes.app_name);
         stage.setMinWidth(280);
         stage.setMinHeight(340);
         stage.setScene(scene);
+        stage.getIcons().addAll(
+                Resources.ImageRes.fpa16,
+                Resources.ImageRes.fpa32,
+                Resources.ImageRes.fpa64,
+                Resources.ImageRes.fpa128,
+                Resources.ImageRes.fpa256,
+                Resources.ImageRes.fpa
+        );
         stage.show();
         stage.setFullScreenExitHint("");
+        stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
         mainWindow = stage;
-        Windows.setEffect(stage, DwmAPI.DWM_SYSTEMBACKDROP_TYPE.DWMSBT_TRANSIENTWINDOW);
+        Windows.setEffect(stage, DwmAPI.DWM_SYSTEMBACKDROP_TYPE.DWMSBT_MAINWINDOW);
         settingWindow = createSettingWindow();
     }
 

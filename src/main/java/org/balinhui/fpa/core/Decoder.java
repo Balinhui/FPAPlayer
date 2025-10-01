@@ -84,12 +84,12 @@ public class Decoder implements Runnable, AudioHandler {
         try {
             if (avformat_open_input(fmtCtx, path, null, null) < 0) {
                 logger.error("Open file failed");
-                return new AudioInfo(0, 0, 0, null, null, 0F, false);
+                throw new RuntimeException("Open file failed");
             }
             logger.trace("打开文件");
             if (avformat_find_stream_info(fmtCtx, (PointerPointer<?>) null) < 0) {
                 logger.error("Cant find stream info");
-                return new AudioInfo(0, 0, 0, null, null, 0F, false);
+                throw new RuntimeException("Cant find stream info");
             }
             logger.trace("寻找流信息");
             AVStream stream = null;
@@ -104,7 +104,7 @@ public class Decoder implements Runnable, AudioHandler {
             }
             if (codecPar == null) {
                 logger.error("Doesnt find codec parameter");
-                return new AudioInfo(0, 0, 0, null, null, 0F, false);
+                throw new RuntimeException("Doesnt find codec parameter");
             }
             logger.trace("找到解码器参数");
             byte[] coverData = null;
@@ -113,6 +113,7 @@ public class Decoder implements Runnable, AudioHandler {
                     logger.info("ffmpeg无法找到封面，尝试通过文件提取");
                     coverData = FlacCoverExtractor.extractFlacCover(path);
                 } catch (IOException e) {
+                    logger.fatal(e.getMessage());
                     throw new RuntimeException(e);
                 }
                 if (coverData == null)

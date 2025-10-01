@@ -1,4 +1,4 @@
-package org.balinhui.fpa.apis;
+package org.balinhui.fpa.nativeapis;
 
 import com.sun.jna.Native;
 import com.sun.jna.Structure;
@@ -9,6 +9,7 @@ import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
 
 public interface DwmAPI extends StdCallLibrary {
+    double SUPPORT_API_VERSION = 10.0;//此api支持的Windows版本
     DwmAPI INSTANCE = Native.load("dwmapi", DwmAPI.class, W32APIOptions.DEFAULT_OPTIONS);
 
     int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;

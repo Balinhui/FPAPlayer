@@ -62,7 +62,7 @@ public class Player implements Runnable, AudioHandler {
             }
         }
         this.maxOutputSampleRate = maxOutputSampleRate;
-        logger.info("设备最大支持采样率: {}", maxOutputSampleRate);
+        logger.info("设备最大支持采样率: {} Hz", maxOutputSampleRate);
     }
 
     /**

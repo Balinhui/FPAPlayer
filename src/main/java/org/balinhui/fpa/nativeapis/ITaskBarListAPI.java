@@ -1,6 +1,6 @@
-package org.balinhui.fpa.apis;
+package org.balinhui.fpa.nativeapis;
 
-public class ITaskBarListApi {
+public class ITaskBarListAPI {
 
     static {
         System.loadLibrary("windows_taskbar");

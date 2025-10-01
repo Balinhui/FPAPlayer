@@ -1,4 +1,4 @@
-package org.balinhui.fpa.apis;
+package org.balinhui.fpa.nativeapis;
 
 public class Share {
     // HRESULT 返回值常量

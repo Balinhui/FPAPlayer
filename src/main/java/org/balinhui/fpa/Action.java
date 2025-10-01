@@ -11,6 +11,7 @@ import org.balinhui.fpa.core.Decoder;
 import org.balinhui.fpa.core.Player;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
+import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.LyricsPlayer;
 import org.balinhui.fpa.ui.Taskbar;
@@ -34,18 +35,29 @@ public class Action {
 
     private native String[] chooseFiles();
 
-    public static Action getInstance() {
+    public static Action initialize() {
         return action;
     }
 
     private Action() {
         //将这个充当初始化
+        SystemInfo.read(
+                System.getProperty("os.name"),
+                System.getProperty("os.arch"),
+                System.getProperty("os.version")
+        );
+        logger.info("==========系统信息==========");
+        logger.info("名称: {}", SystemInfo.systemInfo.name);
+        logger.info("架构: {}", SystemInfo.systemInfo.arch);
+        logger.info("版本: {}", SystemInfo.systemInfo.version);
+        logger.info("==========列举完成==========");
+
         System.loadLibrary("file_chooser");
         logger.trace("加载file_chooser库");
         decoder = Decoder.getDecoder();
         player = Player.getPlayer();
         player.setOnFinished(args -> finish());
-        player.setBeforePlaySample(this::flashProgress);
+        player.setBeforePlaySample(this::flushProgress);
     }
 
     /**
@@ -53,13 +65,17 @@ public class Action {
      */
     public void clickChooseFileButton() {
         logger.info("按钮被点击");
-        String[] path = chooseFiles();
-        if (path == null) {
+        String[] paths = chooseFiles();
+        if (paths == null) {
             logger.info("没有文件");
             return;
         }
-        if (path.length == 1) processFile(path[0]);
-        else processFiles(path);
+        inputPaths(paths);
+    }
+
+    private void inputPaths(String[] paths) {
+        if (paths.length == 1) processFile(paths[0]);
+        else processFiles(paths);
     }
 
     public void clickPauseButton() {
@@ -96,7 +112,7 @@ public class Action {
 
         play(output, progress -> {
             if (progress < path.length) {
-                logger.trace("解码完一首，当前进度:{}", progress);
+                logger.trace("解码完一首，当前进度:第 {} 首", progress + 1);
                 Platform.runLater(() -> {
                     info = decoder.readOnly(path[progress]);
                     logger.info("读取歌曲信息: {}", path[progress]);
@@ -117,22 +133,25 @@ public class Action {
         decoder.setOnFinished(event);
         decoder.start();
         //状态更新，同时为解码线程让出时间
-        FPAScreen.rightPane.getChildren().remove(FPAScreen.button);
-        logger.trace("移除按钮");
-        FPAScreen.rightPane.getChildren().add(FPAScreen.lyricsPane);
-        logger.trace("添加歌词面板");
-        setLyrics(info.metadata);
-        if (info.cover != null) {
-            FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
-            logger.trace("更新封面");
-            FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
-        }
+        Platform.runLater(() -> {
+            FPAScreen.rightPane.getChildren().remove(FPAScreen.button);
+            logger.trace("移除按钮");
+            FPAScreen.rightPane.getChildren().add(FPAScreen.lyricsPane);
+            logger.trace("添加歌词面板");
+            setLyrics(info.metadata);
+            if (info.cover != null) {
+                FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
+                logger.trace("更新封面");
+                FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
+            }
+            FPAScreen.leftPane.getChildren().add(FPAScreen.control);
+        });
 
         if (!Taskbar.init()) {
+            //记录日志但是不做任何操作，因为没有在任务栏显示进度也不影响
             logger.error("任务栏进度条初始化失败");
         }
 
-        FPAScreen.leftPane.getChildren().add(FPAScreen.control);
         player.start();
     }
 
@@ -170,9 +189,10 @@ public class Action {
     }
 
     private void stopLyrics() {
-        logger.trace("停止歌词线程");
-        if (lPlayer != null)
+        if (lPlayer != null) {
+            logger.trace("停止歌词线程");
             lPlayer.stop();
+        }
     }
 
     public void settingResult(Optional<FPAScreen.SettingResult> result) {
@@ -182,7 +202,7 @@ public class Action {
         );
     }
 
-    private void flashProgress(int samples) {
+    private void flushProgress(int samples) {
         playedSamples += samples;
         currentTimeSeconds = (double) playedSamples / info.sampleRate;
         double progress = currentTimeSeconds / info.durationSeconds;
@@ -222,5 +242,6 @@ public class Action {
         CurrentStatus.to(CurrentStatus.Status.STOP);
         //player.setFinished(player::terminate);  终止线程与初始化线程不统一，调用失败
         stopLyrics();
+        logger.info("退出");
     }
 }
