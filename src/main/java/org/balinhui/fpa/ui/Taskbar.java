@@ -34,6 +34,6 @@ public class Taskbar {
         if (!initSucceed) return;
         //TODO 已知问题：播放多首歌中途退出会引发异常，暂不知原因
         ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.TBPF_NOPROGRESS);
-        ITaskBarListAPI.release();
+        ITaskBarListAPI.release(hwnd);
     }
 }

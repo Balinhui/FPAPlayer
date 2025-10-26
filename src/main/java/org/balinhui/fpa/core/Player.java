@@ -21,6 +21,7 @@ public class Player implements Runnable, AudioHandler {
     private final int maxOutputSampleRate;
     private PaStream stream;
     private FinishEvent event;//当播放循环结束后会调用
+    private FinishEvent finishPerSong;
     private PlaySample start;//播放循环期间每一帧调用一次
     private Thread play;
 
@@ -31,6 +32,10 @@ public class Player implements Runnable, AudioHandler {
     @Override
     public void setOnFinished(FinishEvent event) {
         this.event = event;
+    }
+
+    public void setOnPerSongFinished(FinishEvent event) {
+        this.finishPerSong = event;
     }
 
     public void setBeforePlaySample(PlaySample start) {
@@ -172,27 +177,32 @@ public class Player implements Runnable, AudioHandler {
             }
 
             Buffer.Data<?> data = buffer.take();
-            if (start != null)
+            if (data.type == null) {
+                //解码器解码完成
+                if (finishPerSong != null)
+                    finishPerSong.onFinish((Integer) data.data);
+            } else {
+                //正常播放解码信息
                 start.handler(data.old_samples);
-            switch (data.type) {
-                case SHORT -> {
-                    err = pa.Pa_WriteStream(stream, (short[]) data.data, data.nb_samples);
-                    ArrayLoop.returnArray((short[]) data.data);
+                switch (data.type) {
+                    case SHORT -> {
+                        err = pa.Pa_WriteStream(stream, (short[]) data.data, data.nb_samples);
+                        ArrayLoop.returnArray((short[]) data.data);
+                    }
+                    case FLOAT -> {
+                        err = pa.Pa_WriteStream(stream, (float[]) data.data, data.nb_samples);
+                        ArrayLoop.returnArray((float[]) data.data);
+                    }
                 }
-                case FLOAT -> {
-                    err = pa.Pa_WriteStream(stream, (float[]) data.data, data.nb_samples);
-                    ArrayLoop.returnArray((float[]) data.data);
+                if (err != PortAudio.paNoError) {
+                    logger.fatal("Write stream failed: {}", pa.Pa_GetErrorText(err));
+                    if (err != -9980)//放过Output underflowed一马
+                        throw new RuntimeException("Write stream failed: " + pa.Pa_GetErrorText(err));
                 }
-            }
-            if (err != PortAudio.paNoError) {
-                logger.fatal("Write stream failed: {}", pa.Pa_GetErrorText(err));
-                if (err != -9980)//放过Output underflowed一马
-                    throw new RuntimeException("Write stream failed: " + pa.Pa_GetErrorText(err));
             }
         }
         stop();
-        if (event != null)
-            event.onFinish(NO_ARGS);
+        event.onFinish(NO_ARGS);
     }
 
     /**

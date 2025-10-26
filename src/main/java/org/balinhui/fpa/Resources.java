@@ -31,6 +31,7 @@ public class Resources {
         public static final String button_name = "选择文件";
         public static final String setting_item = "设置";
         public static final String full_screen_item = "全屏";
+        public static final String always_on_top_item = "窗口置顶";
         public static final String open_dark_mode_item = "暗黑模式";
         public static final String more_styles_item = "背景样式";
         public static final String mica_style = "云母样式";

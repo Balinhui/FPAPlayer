@@ -198,7 +198,7 @@ public class Decoder implements Runnable, AudioHandler {
             //初始化时间
             Action.playedSamples = 0;
             Action.currentTimeSeconds = 0.0;
-            logger.info("时间轴初始化");
+            logger.info("时间轴初始化");//此只适用于播放单首歌，若播放多首歌，时间轴的初始化会被player中PerSongFinished回调覆盖
 
             if (path == null) {
                 logger.warn("路径为null");
@@ -336,9 +336,12 @@ public class Decoder implements Runnable, AudioHandler {
             frame.deallocate();
             packet.deallocate();
             currentProgress++;
-            if (event != null && CurrentStatus.is(CurrentStatus.Status.PLAYING))
+            if (event != null && CurrentStatus.is(CurrentStatus.Status.PLAYING)) {
+                //向播放器发送结束信息
+                buffer.put(Buffer.Data.of(currentProgress));
+                //对下一首歌预读
                 event.onFinish(currentProgress);
-            if (CurrentStatus.is(CurrentStatus.Status.STOP)) {
+            } else if (CurrentStatus.is(CurrentStatus.Status.STOP)) {
                 buffer.clear();
                 logger.info("强制退出，清空缓冲区");
             }

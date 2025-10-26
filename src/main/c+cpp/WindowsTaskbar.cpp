@@ -34,19 +34,19 @@ JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_setProgr
     if (hwnd == 0 || !IsWindow((HWND) hwnd)) {
         return;
     }
-    if (g_pTaskbarList != NULL) {
+    if (g_pTaskbarList) {
         g_pTaskbarList->SetProgressState((HWND) hwnd, (TBPFLAG) state);
     }
 }
 
 JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_setProgressValue(JNIEnv *env, jclass clazz, jlong hwnd, jlong completed, jlong total) {
-    if (g_pTaskbarList != NULL) {
+    if (g_pTaskbarList) {
         g_pTaskbarList->SetProgressValue((HWND) hwnd, completed, total);
     }
 }
 
-JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_release(JNIEnv *env, jclass clazz) {
-    if (g_pTaskbarList != NULL) {
+JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_release(JNIEnv *env, jclass clazz, jlong hwnd) {
+    if (g_pTaskbarList && hwnd != 0 && IsWindow((HWND) hwnd)) {
         g_pTaskbarList->Release();
         g_pTaskbarList = NULL;
     }

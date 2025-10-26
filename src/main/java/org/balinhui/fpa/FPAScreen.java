@@ -56,7 +56,7 @@ public class FPAScreen extends Application {
 
     @Override
     public void init() {
-        logger.trace("获取Action实例");
+        logger.trace("获取Action实例，进行初始化");
         action = Action.initialize();
     }
 
@@ -267,12 +267,15 @@ public class FPAScreen extends Application {
             else if (size == mediumSize) lyric.setMedium();
             else if (size == largeSize) lyric.setLarge();
             if (action.getLyricList().size() == 1) {
-                if (lyric.getLabel() == lyricsPane.getChildren().getFirst())
+                if (!lyricsPane.getChildren().isEmpty() &&
+                        lyric.getLabel() == lyricsPane.getChildren().getFirst())
                     lyric.mediumLocation();
             } else {
-                if (lyric.getLabel() == lyricsPane.getChildren().getFirst())
+                if (!lyricsPane.getChildren().isEmpty() &&
+                        lyric.getLabel() == lyricsPane.getChildren().getFirst())
                     lyric.topLocation();
-                else if (lyric.getLabel() == lyricsPane.getChildren().get(1))
+                else if (lyricsPane.getChildren().size() > 1 &&
+                        lyric.getLabel() == lyricsPane.getChildren().get(1))
                     lyric.mediumLocation();
             }
         }
@@ -306,10 +309,13 @@ public class FPAScreen extends Application {
         fullScreen.setSelected(false);
         CheckMenuItem openDark = new CheckMenuItem(Resources.StringRes.open_dark_mode_item);
         openDark.setSelected(false);
+        CheckMenuItem alwaysOnTop = new CheckMenuItem(Resources.StringRes.always_on_top_item);
+        alwaysOnTop.setSelected(false);
         Menu moreStylesMenu = new Menu(Resources.StringRes.more_styles_item);
 
         //设置菜单项
-        openSetting.setOnAction(actionEvent -> action.settingResult(settingWindow.showAndWait()));
+        openSetting.setOnAction(actionEvent ->
+            action.settingResult(settingWindow.showAndWait()));
         fullScreen.selectedProperty().addListener((
                 observable,
                 oldValue, newValue) -> {
@@ -346,6 +352,11 @@ public class FPAScreen extends Application {
                 }
             }
         });
+        alwaysOnTop.selectedProperty().addListener((
+                observable,
+                oldValue, newValue) ->
+                mainWindow.setAlwaysOnTop(newValue)
+        );
 
         MenuItem mainWindowStyle = new MenuItem(Resources.StringRes.mica_style);
         MenuItem transientWindowStyle = new MenuItem(Resources.StringRes.transient_style);
@@ -371,6 +382,7 @@ public class FPAScreen extends Application {
                 openSetting,
                 new SeparatorMenuItem(),
                 fullScreen,
+                alwaysOnTop,
                 openDark,
                 moreStylesMenu
         );

@@ -57,6 +57,10 @@ public class Buffer {
         public static Data<float[]> of(int nb_samples, int oldSamples, float[] data) {
             return new Data<>(nb_samples, oldSamples, data, DataType.FLOAT);
         }
+
+        public static Data<Integer> of(int process) {
+            return new Data<>(0, 0, process, null);
+        }
     }
 
     public enum DataType {

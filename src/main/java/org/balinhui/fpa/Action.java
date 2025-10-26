@@ -99,7 +99,7 @@ public class Action {
         OutputInfo output = player.read(info);
         logger.info("取得输出信息：{}", output);
 
-        play(output, null);
+        play(output, null, null);
     }
 
     private void processFiles(String[] path) {
@@ -115,23 +115,30 @@ public class Action {
                 logger.trace("解码完一首，当前进度:第 {} 首", progress + 1);
                 Platform.runLater(() -> {
                     info = decoder.readOnly(path[progress]);
-                    logger.info("读取歌曲信息: {}", path[progress]);
-                    setLyrics(info.metadata);
-                    if (info.cover != null) {
-                        FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
-                        logger.trace("更新封面");
-                        FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
-                    }
+                    logger.info("读取下首歌曲信息: {}", path[progress]);
                 });
             }
+        }, process -> {
+            playedSamples = 0;
+            currentTimeSeconds = 0.0;//覆盖
+            Platform.runLater(() -> {
+                setLyrics(info.metadata);
+                if (info.cover != null) {
+                    FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
+                    logger.trace("更新封面");
+                    FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
+                }
+            });
         });
     }
 
-    private void play(OutputInfo output, AudioHandler.FinishEvent event) {
+    private void play(OutputInfo output, AudioHandler.FinishEvent decoderEvent,
+                                        AudioHandler.FinishEvent playerEvent) {
         ArrayLoop.clear();
         decoder.setOutput(output);
-        decoder.setOnFinished(event);
+        decoder.setOnFinished(decoderEvent);
         decoder.start();
+        player.setOnPerSongFinished(playerEvent);
         //状态更新，同时为解码线程让出时间
         Platform.runLater(() -> {
             FPAScreen.rightPane.getChildren().remove(FPAScreen.button);
