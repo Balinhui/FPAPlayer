@@ -1,11 +1,11 @@
-#include "org_balinhui_fpa_Action.h"
+#include "org_balinhui_fpa_nativeapis_Global.h"
 #include <Windows.h>
 #include <ShObjIdl.h>
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "ole32.lib")
 
-JNIEXPORT jobjectArray JNICALL Java_org_balinhui_fpa_Action_chooseFiles(JNIEnv *env, jobject obj) {
+JNIEXPORT jobjectArray JNICALL Java_org_balinhui_fpa_nativeapis_Global_chooseFiles(JNIEnv *env, jclass clazz) {
     HRESULT hr;
     IFileOpenDialog *pFileOpen;
     

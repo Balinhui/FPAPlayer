@@ -12,6 +12,7 @@ import org.balinhui.fpa.core.Player;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.info.SystemInfo;
+import org.balinhui.fpa.nativeapis.Global;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.LyricsPlayer;
 import org.balinhui.fpa.ui.Taskbar;
@@ -33,8 +34,6 @@ public class Action {
     public static int playedSamples;//归零在Decoder.java
     public static volatile double currentTimeSeconds;//同上
 
-    private native String[] chooseFiles();
-
     public static Action initialize() {
         return action;
     }
@@ -52,8 +51,6 @@ public class Action {
         logger.info("版本: {}", SystemInfo.systemInfo.version);
         logger.info("==========列举完成==========");
 
-        System.loadLibrary("file_chooser");
-        logger.trace("加载file_chooser库");
         decoder = Decoder.getDecoder();
         player = Player.getPlayer();
         player.setOnFinished(args -> finish());
@@ -65,7 +62,7 @@ public class Action {
      */
     public void clickChooseFileButton() {
         logger.info("按钮被点击");
-        String[] paths = chooseFiles();
+        String[] paths = Global.chooseFiles();
         if (paths == null) {
             logger.info("没有文件");
             return;

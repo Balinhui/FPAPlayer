@@ -3,8 +3,10 @@ package org.balinhui.fpa.ui;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
 import javafx.stage.Stage;
+import org.balinhui.fpa.FPAScreen;
 import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.nativeapis.DwmAPI;
+import org.balinhui.fpa.nativeapis.Global;
 import org.balinhui.fpa.nativeapis.Share;
 import org.balinhui.fpa.util.Win32;
 
@@ -41,7 +43,10 @@ public class Windows {
     }
 
     private static void setWindowAttribute(HWND hWnd, int dwAttribute, int pvAttribute) {
-        if (SystemInfo.systemInfo.version < DwmAPI.SUPPORT_API_VERSION) return;
+        if (SystemInfo.systemInfo.version < DwmAPI.SUPPORT_API_VERSION) {
+            Global.message(Win32.getLongHWND(FPAScreen.mainWindow), "设置失败", "当前的系统版本不支持这些效果~");
+            return;
+        }
         IntByReference type = new IntByReference(pvAttribute);
         if (api.DwmSetWindowAttribute(hWnd, dwAttribute, type, 4).intValue() != Share.S_OK) {
             throw new RuntimeException("设置效果失败");

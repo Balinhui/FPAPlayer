@@ -24,24 +24,90 @@ import org.balinhui.fpa.ui.Buttons;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.Windows;
 
+/**
+ * FPA播放器的主界面，这里编写界面的布局和各种控件，内容及窗口
+ */
 public class FPAScreen extends Application {
     private static final Logger logger = LogManager.getLogger(FPAScreen.class);
+
+    /**
+     * 播放器的主窗口
+     */
     public static Stage mainWindow;
+
+    /**
+     * 右键菜单打开的设置窗口
+     */
     public static Dialog<SettingResult> settingWindow;
+
+    /**
+     * 封面图片
+     */
     public static final ImageView view = new ImageView(Resources.ImageRes.cover);
+
+    /**
+     * “选择文件” 按钮，播放歌曲时会去掉以放置歌词
+     */
     public static final Button button = new Button(Resources.StringRes.button_name);
+
+    /**
+     * 歌词的面板
+     */
     public static final StackPane lyricsPane = createLyricsPane();
+
+    /**
+     * 左侧的面板，其中包括封面，和一个暂停按钮
+     */
     public static final VBox leftPane = new VBox();
+
+    /**
+     * 右侧的面板，其中包括选择文件按钮，歌词
+     */
     public static final VBox rightPane = new VBox();
+
+    /**
+     * 根面板，是窗口最底层的面板，被分为了左右两部分
+     */
     public static final AnchorPane root = new AnchorPane();
+
+    /**
+     * 进度条
+     */
     public static final ProgressBar progress = new ProgressBar();
+
+    /**
+     * 右键上下文菜单
+     */
     public static final ContextMenu contextMenu = createContextMenu();
+
+    /**
+     * 暂停/播放 按钮，只有在播放时才会出现
+     */
     public static final Button pause = new Button();
+
+    /**
+     * 暂停按钮的图标
+     */
     public static final ImageView pauseIcon = new ImageView(Resources.ImageRes.pause_black);
+
+    /**
+     * 播放按钮的图标
+     */
     public static final ImageView playIcon = new ImageView(Resources.ImageRes.play_black);
+
+    /**
+     * 用来存放 暂停/播放 按钮的面板，用以将其放置在中间和后续扩展
+     */
     public static final HBox control = new HBox();
 
+    /**
+     * 储存当前窗口的宽度
+     */
     public static double currentWidth;
+
+    /**
+     * 储存当前窗口的高度
+     */
     public static double currentHeight;
 
     public static final double largeSize = 450;
