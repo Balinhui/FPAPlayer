@@ -10,6 +10,9 @@ import org.balinhui.fpa.nativeapis.Global;
 import org.balinhui.fpa.nativeapis.Share;
 import org.balinhui.fpa.util.Win32;
 
+/**
+ * 设置窗口的效果的工具类，通过调用dwmapi.dll实现
+ */
 public class Windows {
     private static final DwmAPI api = DwmAPI.INSTANCE;
 

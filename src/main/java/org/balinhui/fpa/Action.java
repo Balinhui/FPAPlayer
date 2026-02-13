@@ -23,6 +23,9 @@ import org.balinhui.fpa.util.Lyrics;
 import java.io.ByteArrayInputStream;
 import java.util.*;
 
+/**
+ * 实现窗口操作与内部逻辑的联系
+ */
 public class Action {
     private static final Logger logger = LogManager.getLogger(Action.class);
     private static final Action action = new Action();
@@ -31,8 +34,8 @@ public class Action {
     private AudioInfo info;
     private final List<Lyric> lyricList = new ArrayList<>();
     private LyricsPlayer lPlayer;
-    public static int playedSamples;//归零在Decoder.java
-    public static volatile double currentTimeSeconds;//同上
+    public static int playedSamples;
+    public static volatile double currentTimeSeconds;
 
     public static Action initialize() {
         return action;
@@ -62,6 +65,10 @@ public class Action {
      */
     public void clickChooseFileButton() {
         logger.info("按钮被点击");
+        if (!CurrentStatus.is(CurrentStatus.Status.STOP)) {
+            logger.info("播放当中，不许选择文件");
+            return;
+        }
         String[] paths = Global.chooseFiles();
         if (paths == null) {
             logger.info("没有文件");
@@ -70,11 +77,9 @@ public class Action {
         inputPaths(paths);
     }
 
-    private void inputPaths(String[] paths) {
-        if (paths.length == 1) processFile(paths[0]);
-        else processFiles(paths);
-    }
-
+    /**
+     * 暂停按钮点击事件
+     */
     public void clickPauseButton() {
         if (CurrentStatus.is(CurrentStatus.Status.PLAYING)) {
             CurrentStatus.to(CurrentStatus.Status.PAUSE);
@@ -87,6 +92,16 @@ public class Action {
             FPAScreen.pause.setGraphic(FPAScreen.pauseIcon);
             logger.info("播放");
         }
+    }
+
+    public void clickSettingApplyButton() {
+        logger.info("设置中点击应用");
+        FPAScreen.settingWindow.close();
+    }
+
+    private void inputPaths(String[] paths) {
+        if (paths.length == 1) processFile(paths[0]);
+        else processFiles(paths);
     }
 
     private void processFile(String path) {
@@ -108,16 +123,16 @@ public class Action {
 
 
         play(output, progress -> {
+            //在解码完成时调用，与歌曲播放结束不同步，用于提前解码下一首歌曲
             if (progress < path.length) {
                 logger.trace("解码完一首，当前进度:第 {} 首", progress + 1);
-                Platform.runLater(() -> {
-                    info = decoder.readOnly(path[progress]);
-                    logger.info("读取下首歌曲信息: {}", path[progress]);
-                });
+                info = decoder.readOnly(path[progress]);
+                logger.info("读取下首歌曲信息: {}", path[progress]);
             }
         }, process -> {
+            //播放完一首后收到结束信息时调用，用于更新UI、时间轴和歌词
             playedSamples = 0;
-            currentTimeSeconds = 0.0;//覆盖
+            currentTimeSeconds = 0.0;
             Platform.runLater(() -> {
                 setLyrics(info.metadata);
                 if (info.cover != null) {
@@ -131,6 +146,11 @@ public class Action {
 
     private void play(OutputInfo output, AudioHandler.FinishEvent decoderEvent,
                                         AudioHandler.FinishEvent playerEvent) {
+        //初始化时间
+        playedSamples = 0;
+        currentTimeSeconds = 0.0;
+        logger.info("时间轴初始化");
+
         ArrayLoop.clear();
         decoder.setOutput(output);
         decoder.setOnFinished(decoderEvent);
@@ -159,10 +179,15 @@ public class Action {
         player.start();
     }
 
+    /**
+     * 读取歌词，初始化歌词面板，启动歌词播放线程
+     * @param metadata 歌曲元数据
+     */
     private void setLyrics(Map<String, String> metadata) {
         TreeMap<Long, String> lyrics = Lyrics.read(metadata);
         logger.trace("获取歌词和时间轴");
 
+        //清空上次剩余内容
         FPAScreen.lyricsPane.getChildren().clear();
         lyricList.clear();
         int currentLine = 0;
@@ -199,23 +224,16 @@ public class Action {
         }
     }
 
-    public void settingResult(Optional<FPAScreen.SettingResult> result) {
-        result.ifPresentOrElse(settingResult ->
-            logger.info("选择了: {}", settingResult), () ->
-            logger.warn("非法结果")
-        );
-    }
-
     private void flushProgress(int samples) {
         playedSamples += samples;
         currentTimeSeconds = (double) playedSamples / info.sampleRate;
         double progress = currentTimeSeconds / info.durationSeconds;
-        Platform.runLater(() ->
-                FPAScreen.progress.setProgress(
-                        progress
-                )
-        );
-        Taskbar.setProgress(FPAScreen.mainWindow, progress);
+        Platform.runLater(() -> {
+            FPAScreen.progress.setProgress(
+                    progress
+            );
+            Taskbar.setProgress(FPAScreen.mainWindow, progress);
+        });
     }
 
     public List<Lyric> getLyricList() {

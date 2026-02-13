@@ -2,7 +2,6 @@ package org.balinhui.fpa.core;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.balinhui.fpa.Action;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.util.ArrayLoop;
@@ -195,11 +194,6 @@ public class Decoder implements Runnable, AudioHandler {
         CurrentStatus.to(CurrentStatus.Status.PLAYING);
         logger.info("设置当前状态为: {}", CurrentStatus.is(CurrentStatus.Status.PLAYING) ? "PLAYING" : "STOP");
         for (String path : paths) {
-            //初始化时间
-            Action.playedSamples = 0;
-            Action.currentTimeSeconds = 0.0;
-            logger.info("时间轴初始化");//此只适用于播放单首歌，若播放多首歌，时间轴的初始化会被player中PerSongFinished回调覆盖
-
             if (path == null) {
                 logger.warn("路径为null");
                 return;

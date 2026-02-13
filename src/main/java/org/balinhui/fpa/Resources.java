@@ -19,6 +19,7 @@ public class Resources {
         public static final Image fpa256 = new Image(Resources.class.getResourceAsStream("/images/FPA256.png"));
     }
     public static class FontRes {
+        public static final Font yahei_super_small_font = new Font("Microsoft YaHei", 12);
         public static final Font yahei_small_font = new Font("Microsoft YaHei", 15);
         public static final Font yahei_medium_font = new Font("Microsoft YaHei", 20);
         public static final Font yahei_large_font = new Font("Microsoft YaHei", 30);
@@ -29,6 +30,9 @@ public class Resources {
     public static class StringRes {
         public static final String app_name = "FPA Player";
         public static final String button_name = "选择文件";
+        public static final String apply_button_name = "应用";
+        public static final String cancel_button_name = "取消";
+        public static final String ok_button_name = "确定";
         public static final String setting_item = "设置";
         public static final String full_screen_item = "全屏";
         public static final String always_on_top_item = "窗口置顶";

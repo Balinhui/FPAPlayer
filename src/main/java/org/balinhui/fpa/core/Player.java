@@ -17,8 +17,9 @@ public class Player implements Runnable, AudioHandler {
     private static final PortAudio pa = PortAudio.INSTANCE;
     private final Buffer buffer = new Buffer();
     private static final Player player = new Player();
-    private final int maxOutputChannels;
-    private final int maxOutputSampleRate;
+    private int cId;//Current device id
+    private int cMaxOutputChannels;//current
+    private int cMaxOutputSampleRate;//current
     private PaStream stream;
     private FinishEvent event;//当播放循环结束后会调用
     private FinishEvent finishPerSong;
@@ -49,13 +50,24 @@ public class Player implements Runnable, AudioHandler {
             logger.fatal("Player Init Failed: {}", pa.Pa_GetErrorText(err));
             throw new RuntimeException("Player Init Failed: " + pa.Pa_GetErrorText(err));
         }
+
+        //获取设备信息
         int id = pa.Pa_GetDefaultOutputDevice();
+        this.cId = id;
         PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(id);
         logger.info("默认输出设备为: {}", deviceInfo.name);
-        maxOutputChannels = deviceInfo.maxOutputChannels;
+
+        //取得当前的设备的最大输出声道数和采样率
+        getDeviceChannelsAndSampleRateInfo(id, deviceInfo);
+
+        logger.info("设备最大支持采样率: {} Hz", cMaxOutputSampleRate);
+    }
+
+    private void getDeviceChannelsAndSampleRateInfo(int id, PaDeviceInfo deviceInfo) {
+        this.cMaxOutputChannels = deviceInfo.maxOutputChannels;
         PaStreamParameters test = new PaStreamParameters();
         test.device = id;
-        test.channelCount = maxOutputChannels;
+        test.channelCount = this.cMaxOutputChannels;
         test.sampleFormat = PaSampleFormat.paFloat32;
         test.suggestedLatency = deviceInfo.defaultLowOutputLatency;
         double[] sampleRatesToTest = {384000.0, 192000.0, 96000.0, 88200.0, 48000.0, 44100.0, 8000.0};
@@ -66,8 +78,7 @@ public class Player implements Runnable, AudioHandler {
                 break;
             }
         }
-        this.maxOutputSampleRate = maxOutputSampleRate;
-        logger.info("设备最大支持采样率: {} Hz", maxOutputSampleRate);
+        this.cMaxOutputSampleRate = maxOutputSampleRate;
     }
 
     /**
@@ -76,11 +87,23 @@ public class Player implements Runnable, AudioHandler {
      * @return 播放时的输出信息
      */
     public OutputInfo read(AudioInfo audioInfo) {
+        //刷新设备
+        int id = pa.Pa_GetDefaultOutputDevice();
+        if (id != cId) {
+            logger.info("检测到输出设备更改，由id: {} -> id: {}", cId, id);
+            this.cId = id;
+            PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(id);
+            logger.trace("取得当前输出设备: {}", deviceInfo.name);
+
+            getDeviceChannelsAndSampleRateInfo(id, deviceInfo);
+        }
+
+
         int channels = audioInfo.channels, sampleRate = audioInfo.sampleRate, sampleFormat = audioInfo.sampleFormat;
         boolean resample = false;
-        if (audioInfo.channels > maxOutputChannels || audioInfo.sampleRate > maxOutputSampleRate) {
-            channels = Math.min(audioInfo.channels, maxOutputChannels);
-            sampleRate = Math.min(audioInfo.sampleRate, maxOutputSampleRate);
+        if (audioInfo.channels > cMaxOutputChannels || audioInfo.sampleRate > cMaxOutputSampleRate) {
+            channels = Math.min(audioInfo.channels, cMaxOutputChannels);
+            sampleRate = Math.min(audioInfo.sampleRate, cMaxOutputSampleRate);
             resample = true;
         }
 
@@ -108,7 +131,9 @@ public class Player implements Runnable, AudioHandler {
      * 打开统一的流，输出信息为将所有歌曲重采样为特定格式<br>
      * channels: 2<br>
      * sampleRate: 44100Hz<br>
-     * sampleFormat: AV_SAMPLE_FMT_S16(FFmpeg), paInt16(PortAudio)
+     * sampleFormat: <br>
+     * AV_SAMPLE_FMT_S16(FFmpeg);<br>
+     * paInt16(PortAudio)
      * @return 播放时的输出信息
      */
     public OutputInfo readForSameOut() {
@@ -129,10 +154,9 @@ public class Player implements Runnable, AudioHandler {
      */
     private void openStream(int channels, long sampleFormat, double sampleRate) {
         PointerByReference streamRef = new PointerByReference();
-        int id = pa.Pa_GetDefaultOutputDevice();
-        PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(id);
+        PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(cId);
         PaStreamParameters parameters = new PaStreamParameters();
-        parameters.device = id;
+        parameters.device = cId;
         parameters.channelCount = channels;
         parameters.sampleFormat = sampleFormat;
         parameters.suggestedLatency = deviceInfo.defaultLowOutputLatency;
@@ -242,14 +266,6 @@ public class Player implements Runnable, AudioHandler {
             logger.fatal("Terminate failed: {}", pa.Pa_GetErrorText(err));
             throw new RuntimeException("Terminate failed: " + pa.Pa_GetErrorText(err));
         }
-    }
-
-    public int getMaxOutputChannels() {
-        return maxOutputChannels;
-    }
-
-    public int getMaxOutputSampleRate() {
-        return maxOutputSampleRate;
     }
 
     @FunctionalInterface

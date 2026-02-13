@@ -7,13 +7,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Text;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.apache.logging.log4j.LogManager;
@@ -38,7 +35,22 @@ public class FPAScreen extends Application {
     /**
      * 右键菜单打开的设置窗口
      */
-    public static Dialog<SettingResult> settingWindow;
+    public static Stage settingWindow;
+
+    /**
+     * 设置 窗口中的应用按钮
+     */
+    public static Button apply;
+
+    /**
+     * 设置 窗口中的取消按钮
+     */
+    public static Button cancel;
+
+    /**
+     * 设置 窗口中的确定按钮
+     */
+    public static Button ok;
 
     /**
      * 封面图片
@@ -150,7 +162,7 @@ public class FPAScreen extends Application {
         playIcon.setPreserveRatio(true);
         pause.setGraphic(pauseIcon);
         pause.setPrefWidth(100);
-        Buttons.setLightOrDark(false, pause);
+        Buttons.setLightOrDark(false, Buttons.Color.WHITE, pause);
         pause.setOnAction(e -> action.clickPauseButton());
 
         control.getChildren().add(pause);
@@ -164,7 +176,7 @@ public class FPAScreen extends Application {
         rightPane.setPadding(new Insets(0, 10, 0, 0));
         button.setFont(Resources.FontRes.yahei_small_font);
         button.setOnAction(e -> action.clickChooseFileButton());
-        Buttons.setLightOrDark(false, button);
+        Buttons.setLightOrDark(false, Buttons.Color.WHITE, button);
         rightPane.getChildren().add(button);
 
         progress.setPrefHeight(10);
@@ -201,7 +213,7 @@ public class FPAScreen extends Application {
             changeSize();
         });
 
-        logger.trace("设置stage");
+        logger.trace("初始化 stage");
         if (SystemInfo.systemInfo.version >= DwmAPI.SUPPORT_API_VERSION) {
             logger.trace("将组件透明，去掉窗口装饰");
             root.setStyle("-fx-background-color: transparent");
@@ -225,7 +237,7 @@ public class FPAScreen extends Application {
         stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
         mainWindow = stage;
         Windows.setEffect(stage, DwmAPI.DWM_SYSTEMBACKDROP_TYPE.DWMSBT_MAINWINDOW);
-        settingWindow = createSettingWindow();
+        settingWindow = createSettingWindow();//等待主窗口创建完成再初始化设置窗口
     }
 
     @Override
@@ -233,6 +245,10 @@ public class FPAScreen extends Application {
         action.exit();
     }
 
+    /**
+     * 设置面板的布局
+     * @param rightExist 是否存在右边的歌词面板
+     */
     private void setAnchorPane(boolean rightExist) {
         double wDistance = currentWidth == 0.0 ? 300.0 : currentWidth / 2.0;
         double hDistance = currentHeight == 0.0 ? 360.0 : currentHeight - 47.0;
@@ -311,11 +327,13 @@ public class FPAScreen extends Application {
             if (root.getChildren().size() == 3) {
                 root.getChildren().remove(1);
                 setAnchorPane(false);
+                view.setOnMouseClicked(event -> action.clickChooseFileButton());
             }
         } else {
             if (root.getChildren().size() == 2) {
                 root.getChildren().add(1, rightPane);
                 setAnchorPane(true);
+                view.setOnMouseClicked(event -> logger.trace("点击图片无用，因为没有缩小至简易模式"));
             }
         }
     }
@@ -381,7 +399,7 @@ public class FPAScreen extends Application {
 
         //设置菜单项
         openSetting.setOnAction(actionEvent ->
-            action.settingResult(settingWindow.showAndWait()));
+            settingWindow.showAndWait());
         fullScreen.selectedProperty().addListener((
                 observable,
                 oldValue, newValue) -> {
@@ -392,7 +410,8 @@ public class FPAScreen extends Application {
         openDark.selectedProperty().addListener((
                 observableValue,
                 old, open) -> {
-            Buttons.setLightOrDark(open, button, pause);//按钮背景变色
+            Buttons.setLightOrDark(open, Buttons.Color.WHITE, button, pause);//白色按钮背景变色
+            Buttons.setLightOrDark(open, Buttons.Color.BLUE, apply);//蓝色按钮背景变色
             Windows.setLightOrDark(mainWindow, open);//窗口背景变色
             Lyric.setDark(open);//歌词默认颜色改变
             for (Lyric lyric : action.getLyricList()) {//当前歌词颜色改变
@@ -402,7 +421,7 @@ public class FPAScreen extends Application {
                     lyric.setModeForHighLight(open);
                 else lyric.setMode(open);
             }
-            if (open) {
+            if (open) {//右键菜单，资源图片改变
                 playIcon.setImage(Resources.ImageRes.play_white);
                 pauseIcon.setImage(Resources.ImageRes.pause_white);
                 menu.setStyle(darkMenu);
@@ -455,37 +474,57 @@ public class FPAScreen extends Application {
         return menu;
     }
 
-    private Dialog<SettingResult> createSettingWindow() {
-        Dialog<SettingResult> dialog = new Dialog<>();
-        dialog.setTitle(Resources.StringRes.setting_item);
-        dialog.setWidth(400);
-        dialog.setHeight(300);
+    private Stage createSettingWindow() {
+        Stage instance = new Stage();
+        HBox root = new HBox(10);
+        Scene scene = new Scene(root);
 
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
-                return SettingResult.OK;
-            } else if (buttonType.getButtonData() == ButtonBar.ButtonData.APPLY) {
-                return SettingResult.APPLY;
-            } else if (buttonType.getButtonData() == ButtonBar.ButtonData.CANCEL_CLOSE) {
-                return SettingResult.CANCEL;
-            }
-            return null;
-        });
+        if (SystemInfo.systemInfo.version >= DwmAPI.SUPPORT_API_VERSION) {
+            root.setStyle("-fx-background-color: transparent");
+            scene.setFill(Color.TRANSPARENT);
+            instance.initStyle(StageStyle.UNIFIED);
+        }
+        instance.setTitle(Resources.StringRes.setting_item);
+        instance.initModality(Modality.APPLICATION_MODAL);//设置为应用模态
+        instance.initOwner(mainWindow);
 
-        DialogPane pane = dialog.getDialogPane();
-        StackPane context = new StackPane();
+        instance.setWidth(500);
+        instance.setHeight(350);
+        instance.setResizable(false);
+        instance.getIcons().addAll(
+                Resources.ImageRes.fpa16,
+                Resources.ImageRes.fpa32,
+                Resources.ImageRes.fpa64,
+                Resources.ImageRes.fpa128,
+                Resources.ImageRes.fpa256,
+                Resources.ImageRes.fpa
+        );
 
-        context.setPrefWidth(400);
-        context.setPrefHeight(200);
-        context.getChildren().add(new Text("啥也没有"));
 
-        pane.setContent(context);
-        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.APPLY, ButtonType.CANCEL);
+        root.setPadding(new Insets(10));
+        root.setAlignment(Pos.BOTTOM_RIGHT);
 
-        return dialog;
-    }
+        apply = new Button(Resources.StringRes.apply_button_name);
+        Buttons.setLightOrDark(false, Buttons.Color.BLUE, apply);
+        apply.setPrefWidth(80);
+        apply.setFont(Resources.FontRes.yahei_super_small_font);
+        apply.setOnAction(actionEvent -> action.clickSettingApplyButton());
 
-    public enum SettingResult {
-        OK, APPLY, CANCEL
+        cancel = new Button(Resources.StringRes.cancel_button_name);
+        Buttons.setLightOrDark(false, Buttons.Color.WHITE, cancel);
+        cancel.setPrefWidth(80);
+        cancel.setFont(Resources.FontRes.yahei_super_small_font);
+        cancel.setOnAction(actionEvent -> settingWindow.close());
+
+        ok = new Button(Resources.StringRes.ok_button_name);
+        Buttons.setLightOrDark(false, Buttons.Color.WHITE, ok);
+        ok.setPrefWidth(80);
+        ok.setFont(Resources.FontRes.yahei_super_small_font);
+
+        root.getChildren().addAll(ok, cancel, apply);
+
+        instance.setScene(scene);
+
+        return instance;
     }
 }

@@ -12,7 +12,7 @@ public class FlacCoverExtractor {
     private FlacCoverExtractor() {}
 
     /**
-     * 获取缺失mimetype的文件的封面如果有
+     * 获取缺失mimetype的文件的封面，如果有
      * @param flacPath 文件路径
      * @return 图像的数组，没有则为null
      * @throws IOException 找不到文件或无法正常处理
