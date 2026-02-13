@@ -82,21 +82,32 @@ public class Action {
      */
     public void clickPauseButton() {
         if (CurrentStatus.is(CurrentStatus.Status.PLAYING)) {
+            //暂停
             CurrentStatus.to(CurrentStatus.Status.PAUSE);
             lPlayer.pause();
             FPAScreen.pause.setGraphic(FPAScreen.playIcon);
-            logger.info("暂停");
+            Taskbar.setPaused(true);//设置任务栏暂停状态
         } else if (CurrentStatus.is(CurrentStatus.Status.PAUSE)) {
+            //播放
             CurrentStatus.to(CurrentStatus.Status.PLAYING);
             lPlayer.resume();
             FPAScreen.pause.setGraphic(FPAScreen.pauseIcon);
-            logger.info("播放");
+            Taskbar.setPaused(false);//恢复任务栏
         }
     }
 
     public void clickSettingApplyButton() {
         logger.info("设置中点击应用");
         FPAScreen.settingWindow.close();
+    }
+
+    /**
+     * 通过拖入文件来播放
+     * @param paths 文件绝对路径
+     */
+    public void inputPathsFromDropping(String[] paths) {
+        logger.info("拖入文件");
+        inputPaths(paths);
     }
 
     private void inputPaths(String[] paths) {
@@ -171,7 +182,7 @@ public class Action {
             FPAScreen.leftPane.getChildren().add(FPAScreen.control);
         });
 
-        if (!Taskbar.init()) {
+        if (!Taskbar.init(FPAScreen.mainWindow)) {
             //记录日志但是不做任何操作，因为没有在任务栏显示进度也不影响
             logger.error("任务栏进度条初始化失败");
         }
@@ -229,10 +240,8 @@ public class Action {
         currentTimeSeconds = (double) playedSamples / info.sampleRate;
         double progress = currentTimeSeconds / info.durationSeconds;
         Platform.runLater(() -> {
-            FPAScreen.progress.setProgress(
-                    progress
-            );
-            Taskbar.setProgress(FPAScreen.mainWindow, progress);
+            FPAScreen.progress.setProgress(progress);
+            Taskbar.setProgress(progress);
         });
     }
 

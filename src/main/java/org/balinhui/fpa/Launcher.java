@@ -2,6 +2,7 @@ package org.balinhui.fpa;
 
 import javafx.application.Application;
 import org.balinhui.fpa.nativeapis.Global;
+import org.balinhui.fpa.nativeapis.MessageFlags;
 
 import java.io.File;
 
@@ -13,7 +14,8 @@ public class Launcher {
         //如果日志文件的大小过大，则会清除
         if (log.exists() && log.length() > 100000) {
             if (!log.delete()) {
-                Global.message(0L, "错误", "logs文件夹下的app.log文件无法删除，尝试重启应用或手动删除文件！");
+                Global.message(0L, "错误", "logs文件夹下的app.log文件无法删除，尝试重启应用或手动删除文件！",
+                        MessageFlags.DisplayButtons.OK | MessageFlags.Icons.ERROR);
                 System.exit(0);
             }
         }

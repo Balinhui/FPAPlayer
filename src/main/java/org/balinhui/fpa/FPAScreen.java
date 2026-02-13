@@ -5,9 +5,16 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.BoxBlur;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.*;
+import javafx.scene.input.TransferMode;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
@@ -17,9 +24,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.nativeapis.DwmAPI;
+import org.balinhui.fpa.nativeapis.Global;
+import org.balinhui.fpa.nativeapis.MessageFlags;
 import org.balinhui.fpa.ui.Buttons;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.Windows;
+import org.balinhui.fpa.util.Win32;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * FPA播放器的主界面，这里编写界面的布局和各种控件，内容及窗口
@@ -186,6 +200,7 @@ public class FPAScreen extends Application {
         logger.trace("控件添加进根面板");
         root.getChildren().addAll(leftPane, rightPane, progress);
         setAnchorPane(true);
+        addFileDrop();
 
         Scene scene = new Scene(root, 600, 370);
         scene.setOnContextMenuRequested(e ->
@@ -275,6 +290,102 @@ public class FPAScreen extends Application {
         } else {
             AnchorPane.setRightAnchor(leftPane, 0.0);
         }
+    }
+
+    private void addFileDrop() {
+        //设置文件拖入时的效果
+        root.setOnDragEntered(dragEvent -> {
+            //添加模糊效果
+            BoxBlur blur = new BoxBlur();
+            blur.setWidth(5);
+            blur.setHeight(5);
+            blur.setIterations(1);
+
+            //添加背景压暗效果
+            ColorAdjust darken = new ColorAdjust();
+            darken.setBrightness(-0.2);
+
+            blur.setInput(darken);
+            root.setEffect(blur);
+            dragEvent.consume();
+        });
+
+        //文件离开时取消效果
+        root.setOnDragExited(dragEvent -> {
+            root.setEffect(null);
+            dragEvent.consume();
+        });
+
+        root.setOnDragOver(dragEvent -> {
+            Dragboard board = dragEvent.getDragboard();
+            if (board.hasFiles()) {
+                List<File> files = board.getFiles();
+                List<String> names = List.of(".mp3", ".flac", ".ogg", ".wav");
+                if (files.size() == 1) { //如果为单个文件
+                    File cFile = files.getFirst();
+                    //防止文件夹
+                    if (!cFile.isDirectory()) {
+                        for (String name : names) {
+                            //如果匹配上音乐文件后缀，就允许
+                            if (cFile.getName().endsWith(name)) {
+                                dragEvent.acceptTransferModes(TransferMode.MOVE);
+                                break;
+                            }
+                        }
+                    }
+                } else { //如果是多个文件，就直接允许
+                    dragEvent.acceptTransferModes(TransferMode.MOVE);
+                }
+            }
+            dragEvent.consume();
+        });
+
+        root.setOnDragDropped(dragEvent -> {
+            Dragboard board = dragEvent.getDragboard();
+            boolean success = false;
+
+            if (board.hasFiles()) {
+                List<File> files = board.getFiles();
+                List<String> names = List.of(".mp3", ".flac", ".ogg", ".wav");
+                if (files.size() == 1) { //如果为单个文件
+                    File cFile = files.getFirst();
+                    //防止文件夹
+                    if (!cFile.isDirectory()) {
+                        for (String name : names) {
+                            //如果匹配上音乐文件后缀，就允许
+                            if (cFile.getName().endsWith(name)) {
+                                String[] path = { cFile.getAbsolutePath() };
+                                action.inputPathsFromDropping(path);
+                                break;
+                            }
+                        }
+                    }
+                } else { //多个文件进行分析
+                    List<File> permitted = new ArrayList<>();//符合条件的文件个数
+                    for (File file : files) {
+                        for (String name : names) {
+                            if (!file.isDirectory() && file.getName().endsWith(name)) {
+                                permitted.add(file);
+                                break;
+                            }
+                        }
+                    }
+                    if (permitted.size() != files.size()) {
+                        Global.message(Win32.getLongHWND(mainWindow),
+                                "请注意",
+                                "您所选的文件中有部分可能不是音乐文件，已跳过。",
+                                MessageFlags.DisplayButtons.OK | MessageFlags.Icons.WARNING
+                        );
+                    }
+                    //将List<File> 转化为 绝对路径 String[]
+                    String[] filePaths = permitted.stream().map(File::getAbsolutePath).toArray(String[]::new);
+                    action.inputPathsFromDropping(filePaths);
+                }
+                success = true;
+            }
+            dragEvent.setDropCompleted(success);
+            dragEvent.consume();
+        });
     }
 
     private static StackPane createLyricsPane() {

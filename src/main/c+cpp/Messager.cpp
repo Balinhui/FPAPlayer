@@ -2,8 +2,8 @@
 #include <Windows.h>
 #pragma comment(lib, "user32.lib")
 
-JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_Global_message
-(JNIEnv *env, jclass clazz, jlong hwnd, jstring title, jstring msg) {
+JNIEXPORT jint JNICALL Java_org_balinhui_fpa_nativeapis_Global_message
+(JNIEnv *env, jclass clazz, jlong hwnd, jstring title, jstring msg, jlong type) {
     const jchar* wtitle = env->GetStringChars(title, nullptr);
     const jchar* wmsg = env->GetStringChars(msg, nullptr);
 
@@ -13,11 +13,15 @@ JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_Global_message
     } else {
         window = (HWND) hwnd;
     }
-    MessageBoxW(window,
-                reinterpret_cast<LPCWSTR>(wmsg), 
-                reinterpret_cast<LPCWSTR>(wtitle), 
-                MB_OK);
+    int result = MessageBoxW(
+        window,
+        reinterpret_cast<LPCWSTR>(wmsg), 
+        reinterpret_cast<LPCWSTR>(wtitle), 
+        type
+    );
     
     env->ReleaseStringChars(title, wtitle);
     env->ReleaseStringChars(msg, wmsg);
+    
+    return result;
 }

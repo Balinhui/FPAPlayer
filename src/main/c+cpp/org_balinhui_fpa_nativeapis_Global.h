@@ -18,10 +18,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_balinhui_fpa_nativeapis_Global_chooseFil
 /*
  * Class:     org_balinhui_fpa_nativeapis_Global
  * Method:    message
- * Signature: (JLjava/lang/String;Ljava/lang/String;)V
+ * Signature: (JLjava/lang/String;Ljava/lang/String;J)I
  */
-JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_Global_message
-  (JNIEnv *, jclass, jlong, jstring, jstring);
+JNIEXPORT jint JNICALL Java_org_balinhui_fpa_nativeapis_Global_message
+  (JNIEnv *, jclass, jlong, jstring, jstring, jlong);
 
 #ifdef __cplusplus
 }
