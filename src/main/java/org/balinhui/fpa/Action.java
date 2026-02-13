@@ -3,6 +3,9 @@ package org.balinhui.fpa;
 import javafx.application.Platform;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.image.Image;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.balinhui.fpa.core.AudioHandler;
@@ -13,15 +16,21 @@ import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.nativeapis.Global;
+import org.balinhui.fpa.nativeapis.MessageFlags;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.LyricsPlayer;
 import org.balinhui.fpa.ui.Taskbar;
 import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.CoverColorExtractor;
 import org.balinhui.fpa.util.Lyrics;
+import org.balinhui.fpa.util.Win32;
 
 import java.io.ByteArrayInputStream;
-import java.util.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * 实现窗口操作与内部逻辑的联系
@@ -99,15 +108,6 @@ public class Action {
     public void clickSettingApplyButton() {
         logger.info("设置中点击应用");
         FPAScreen.settingWindow.close();
-    }
-
-    /**
-     * 通过拖入文件来播放
-     * @param paths 文件绝对路径
-     */
-    public void inputPathsFromDropping(String[] paths) {
-        logger.info("拖入文件");
-        inputPaths(paths);
     }
 
     private void inputPaths(String[] paths) {
@@ -247,6 +247,83 @@ public class Action {
 
     public List<Lyric> getLyricList() {
         return lyricList;
+    }
+
+    /**
+     * 将文件拖入窗口的事件
+     */
+    public void onDragOver(DragEvent dragEvent) {
+        if (!CurrentStatus.is(CurrentStatus.Status.STOP)) {
+            dragEvent.consume();
+            return;
+        }
+        Dragboard board = dragEvent.getDragboard();
+        if (board.hasFiles()) {
+            List<File> files = board.getFiles();
+            List<String> names = List.of(".mp3", ".flac", ".ogg", ".wav", ".m4a");
+            if (files.size() == 1) { //如果为单个文件
+                File cFile = files.getFirst();
+                //防止文件夹
+                if (!cFile.isDirectory()) {
+                    for (String name : names) {
+                        //如果匹配上音乐文件后缀，就允许
+                        if (cFile.getName().endsWith(name)) {
+                            dragEvent.acceptTransferModes(TransferMode.MOVE);
+                            break;
+                        }
+                    }
+                }
+            } else { //如果是多个文件，就直接允许
+                dragEvent.acceptTransferModes(TransferMode.MOVE);
+            }
+        }
+        dragEvent.consume();
+    }
+
+    /**
+     * 文件拖入窗口放手事件
+     */
+    public void onDragDropped(DragEvent dragEvent) {
+        if (!CurrentStatus.is(CurrentStatus.Status.STOP)) {
+            dragEvent.consume();
+            return;
+        }
+        Dragboard board = dragEvent.getDragboard();
+        boolean success = false;
+
+        if (board.hasFiles()) {
+            List<File> files = board.getFiles();
+            List<String> names = List.of(".mp3", ".flac", ".ogg", ".wav", ".m4a");
+            if (files.size() == 1) { //如果为单个文件
+                String[] path = { files.getFirst().getAbsolutePath() };
+                inputPaths(path);
+            } else { //多个文件进行分析
+                List<File> permitted = new ArrayList<>();//符合条件的文件个数
+                for (File file : files) {
+                    for (String name : names) {
+                        if (!file.isDirectory() && file.getName().endsWith(name)) {
+                            permitted.add(file);
+                            break;
+                        }
+                    }
+                }
+                if (permitted.size() != files.size()) {
+                    Global.message(Win32.getLongHWND(FPAScreen.mainWindow),
+                            "请注意",
+                            "您所选的文件中有部分可能不是音乐文件，已跳过。",
+                            MessageFlags.DisplayButtons.OK | MessageFlags.Icons.WARNING
+                    );
+                }
+                if (!permitted.isEmpty()) {
+                    //将List<File> 转化为 绝对路径 String[]
+                    String[] filePaths = permitted.stream().map(File::getAbsolutePath).toArray(String[]::new);
+                    inputPaths(filePaths);
+                }
+            }
+            success = true;
+        }
+        dragEvent.setDropCompleted(success);
+        dragEvent.consume();
     }
 
     /**
