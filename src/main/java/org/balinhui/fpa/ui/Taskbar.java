@@ -10,7 +10,7 @@ import org.balinhui.fpa.util.Win32;
 public class Taskbar {
     private static long hwnd;
     private static Stage stageCache;
-    private static boolean initSucceed;//成功为true，失败为false
+    private static boolean initSucceed = false;//成功为true，失败为false
     private static boolean isRelease = false;
 
     private Taskbar() {}
@@ -21,6 +21,7 @@ public class Taskbar {
      * @return 初始化成功为true，失败为false
      */
     public static boolean init(Stage stage) {
+        if (initSucceed) return true;
         if (stageCache == null || stageCache != stage) {
             hwnd = Win32.getLongHWND(stage);
             stageCache = stage;
@@ -37,7 +38,7 @@ public class Taskbar {
         if (!initSucceed) return;
 
         if (progress < 0) {
-            ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.TBPF_INDETERMINATE);
+            ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.INDE_TERMINATE);
         } else if (progress >= 1.0) {
             ITaskBarListAPI.setProgressValue(hwnd, 1, 1);
         } else {
@@ -47,12 +48,20 @@ public class Taskbar {
         }
     }
 
+    /**
+     * 设置当前任务栏的状态
+     * @param state 任务栏状态类型 在{@link ITaskBarListAPI}中查看
+     */
+    public static void setState(int state) {
+        ITaskBarListAPI.setProgressState(hwnd, state);
+    }
+
     public static void setPaused(boolean isPaused) {
         if (!initSucceed) return;
         if (isPaused)
-            ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.TBPF_PAUSED);
+            ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.PAUSED);
         else
-            ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.TBPF_NORMAL);
+            ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.NORMAL);
     }
 
     /**
@@ -61,7 +70,7 @@ public class Taskbar {
      */
     public static boolean release() {
         if (!initSucceed || isRelease) return false;
-        ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.TBPF_NOPROGRESS);
+        ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.NO_PROGRESS);
         boolean result = ITaskBarListAPI.release(hwnd);
         initSucceed = false;
         isRelease = true;

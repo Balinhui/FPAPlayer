@@ -16,6 +16,7 @@ import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
 import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.nativeapis.Global;
+import org.balinhui.fpa.nativeapis.ITaskBarListAPI;
 import org.balinhui.fpa.nativeapis.MessageFlags;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.LyricsPlayer;
@@ -149,7 +150,9 @@ public class Action {
                 if (info.cover != null) {
                     FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
                     logger.trace("更新封面");
-                    FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
+                    FPAScreen.progress.setStyle(
+                            "-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");"
+                    );
                 }
             });
         });
@@ -177,7 +180,9 @@ public class Action {
             if (info.cover != null) {
                 FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
                 logger.trace("更新封面");
-                FPAScreen.progress.setStyle("-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");");
+                FPAScreen.progress.setStyle(
+                        "-fx-accent: rgb(" + CoverColorExtractor.extractOneRGBColor(info.cover) + ");"
+                );
             }
             FPAScreen.leftPane.getChildren().add(FPAScreen.control);
         });
@@ -186,6 +191,8 @@ public class Action {
         if (!Taskbar.init(FPAScreen.mainWindow)) {
             //记录日志但是不做任何操作，因为没有在任务栏显示进度也不影响
             logger.error("任务栏进度条初始化失败");
+        } else {
+            Taskbar.setState(ITaskBarListAPI.NORMAL);
         }
 
         player.start();//播放线程开始
@@ -333,10 +340,11 @@ public class Action {
         logger.trace("(所有)歌曲结束");
         stopLyrics();
 
-        if (FPAScreen.mainWindow.isShowing()) {
+        /*if (FPAScreen.mainWindow.isShowing()) {
             if (Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
             else logger.warn("Taskbar的COM接口释放失败");
-        }
+        }*/
+        Taskbar.setState(ITaskBarListAPI.NO_PROGRESS);
 
         Platform.runLater(() -> {
             FPAScreen.rightPane.getChildren().remove(FPAScreen.lyricsPane);

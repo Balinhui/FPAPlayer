@@ -7,11 +7,11 @@ public class ITaskBarListAPI {
     }
 
     // 进度状态常量
-    public static final int TBPF_NOPROGRESS = 0;
-    public static final int TBPF_INDETERMINATE = 1;
-    public static final int TBPF_NORMAL = 2;
-    public static final int TBPF_ERROR = 4;
-    public static final int TBPF_PAUSED = 8;
+    public static final int NO_PROGRESS = 0;
+    public static final int INDE_TERMINATE = 1;
+    public static final int NORMAL = 2;
+    public static final int ERROR = 4;
+    public static final int PAUSED = 8;
 
     // 本地方法声明
     public static native boolean initialize();
