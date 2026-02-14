@@ -3,6 +3,8 @@ package org.balinhui.fpa;
 import javafx.scene.image.Image;
 import javafx.scene.text.Font;
 
+import java.util.List;
+
 @SuppressWarnings("all")
 public class Resources {
     public static class ImageRes {
@@ -41,5 +43,8 @@ public class Resources {
         public static final String mica_style = "云母样式";
         public static final String transient_style = "亚克力样式";
         public static final String tabbed_style = "tabbed样式";
+    }
+    public static class SuffixNameRes {
+        public static final List<String> suffix_names = List.of(".mp3", ".flac", ".ogg", ".wav", ".m4a");
     }
 }

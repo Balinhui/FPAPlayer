@@ -17,5 +17,11 @@ public class ITaskBarListAPI {
     public static native boolean initialize();
     public static native void setProgressState(long hwnd, int state);
     public static native void setProgressValue(long hwnd, long completed, long total);
-    public static native void release(long hwnd);
+
+    /**
+     * 释放资源
+     * @param hwnd 作用的窗口
+     * @return 释放成功为{@code true} 否则为 {@code false}
+     */
+    public static native boolean release(long hwnd);
 }

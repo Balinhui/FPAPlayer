@@ -182,12 +182,13 @@ public class Action {
             FPAScreen.leftPane.getChildren().add(FPAScreen.control);
         });
 
+        logger.trace("初始化任务栏进度条");
         if (!Taskbar.init(FPAScreen.mainWindow)) {
             //记录日志但是不做任何操作，因为没有在任务栏显示进度也不影响
             logger.error("任务栏进度条初始化失败");
         }
 
-        player.start();
+        player.start();//播放线程开始
     }
 
     /**
@@ -232,6 +233,7 @@ public class Action {
         if (lPlayer != null) {
             logger.trace("停止歌词线程");
             lPlayer.stop();
+            lPlayer = null;
         }
     }
 
@@ -260,12 +262,11 @@ public class Action {
         Dragboard board = dragEvent.getDragboard();
         if (board.hasFiles()) {
             List<File> files = board.getFiles();
-            List<String> names = List.of(".mp3", ".flac", ".ogg", ".wav", ".m4a");
             if (files.size() == 1) { //如果为单个文件
                 File cFile = files.getFirst();
                 //防止文件夹
                 if (!cFile.isDirectory()) {
-                    for (String name : names) {
+                    for (String name : Resources.SuffixNameRes.suffix_names) {
                         //如果匹配上音乐文件后缀，就允许
                         if (cFile.getName().endsWith(name)) {
                             dragEvent.acceptTransferModes(TransferMode.MOVE);
@@ -293,14 +294,13 @@ public class Action {
 
         if (board.hasFiles()) {
             List<File> files = board.getFiles();
-            List<String> names = List.of(".mp3", ".flac", ".ogg", ".wav", ".m4a");
             if (files.size() == 1) { //如果为单个文件
                 String[] path = { files.getFirst().getAbsolutePath() };
                 inputPaths(path);
             } else { //多个文件进行分析
                 List<File> permitted = new ArrayList<>();//符合条件的文件个数
                 for (File file : files) {
-                    for (String name : names) {
+                    for (String name : Resources.SuffixNameRes.suffix_names) {
                         if (!file.isDirectory() && file.getName().endsWith(name)) {
                             permitted.add(file);
                             break;
@@ -332,7 +332,12 @@ public class Action {
     public void finish() {
         logger.trace("(所有)歌曲结束");
         stopLyrics();
-        Taskbar.release();
+
+        if (FPAScreen.mainWindow.isShowing()) {
+            if (Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
+            else logger.warn("Taskbar的COM接口释放失败");
+        }
+
         Platform.runLater(() -> {
             FPAScreen.rightPane.getChildren().remove(FPAScreen.lyricsPane);
             FPAScreen.rightPane.getChildren().add(FPAScreen.button);
@@ -348,7 +353,7 @@ public class Action {
      */
     public void exit() {
         CurrentStatus.to(CurrentStatus.Status.STOP);
-        //player.setFinished(player::terminate);  终止线程与初始化线程不统一，调用失败
+        player.terminate();
         stopLyrics();
         logger.info("退出");
     }

@@ -24,6 +24,7 @@ import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.nativeapis.DwmAPI;
 import org.balinhui.fpa.ui.Buttons;
 import org.balinhui.fpa.ui.Lyric;
+import org.balinhui.fpa.ui.Taskbar;
 import org.balinhui.fpa.ui.Windows;
 
 /**
@@ -238,6 +239,11 @@ public class FPAScreen extends Application {
                 Resources.ImageRes.fpa256,
                 Resources.ImageRes.fpa
         );
+        //确保taskbar真的被释放
+        stage.setOnCloseRequest(windowEvent -> {
+            if (Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
+            else logger.warn("Taskbar的COM接口释放失败");
+        });
         stage.show();
         stage.setFullScreenExitHint("");
         stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);

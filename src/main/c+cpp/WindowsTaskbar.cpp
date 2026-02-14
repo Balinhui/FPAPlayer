@@ -8,7 +8,7 @@ static ITaskbarList3 *g_pTaskbarList = NULL;
 
 JNIEXPORT jboolean JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_initialize(JNIEnv *env, jclass clazz) {
     //初始化 COM
-    HRESULT hr = CoInitialize(NULL);
+    HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if (FAILED(hr)) {
         return JNI_FALSE;
     }
@@ -45,10 +45,13 @@ JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_setProgr
     }
 }
 
-JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_release(JNIEnv *env, jclass clazz, jlong hwnd) {
+JNIEXPORT jboolean JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_release(JNIEnv *env, jclass clazz, jlong hwnd) {
+    jboolean result = JNI_FALSE;
     if (g_pTaskbarList && hwnd != 0 && IsWindow((HWND) hwnd)) {
         g_pTaskbarList->Release();
         g_pTaskbarList = NULL;
+        result = JNI_TRUE;
     }
     CoUninitialize();
+    return result;
 }

@@ -9,6 +9,11 @@ import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.AudioUtil;
 import org.balinhui.portaudio.*;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLT;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_S16;
 
@@ -24,7 +29,7 @@ public class Player implements Runnable, AudioHandler {
     private FinishEvent event;//当播放循环结束后会调用
     private FinishEvent finishPerSong;
     private PlaySample start;//播放循环期间每一帧调用一次
-    private Thread play;
+    private final ExecutorService singleThread;//player的唯一线程，一切与portaudio有关的操作都将在这里进行
 
     public static Player getPlayer() {
         return player;
@@ -43,24 +48,33 @@ public class Player implements Runnable, AudioHandler {
         this.start = start;
     }
 
+    /**
+     * 初始化Player
+     */
     private Player() {
-        PortAudio.setUTF_8();//设置Port Audio输出字符格式为UTF-8
-        int err = pa.Pa_Initialize();
-        if (err != PortAudio.paNoError) {
-            logger.fatal("Player Init Failed: {}", pa.Pa_GetErrorText(err));
-            throw new RuntimeException("Player Init Failed: " + pa.Pa_GetErrorText(err));
-        }
+        //初始化Play的线程
+        ThreadFactory factory = r -> new Thread(r, "Play Thread");
+        singleThread = Executors.newSingleThreadExecutor(factory);
 
-        //获取设备信息
-        int id = pa.Pa_GetDefaultOutputDevice();
-        this.cId = id;
-        PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(id);
-        logger.info("默认输出设备为: {}", deviceInfo.name);
+        singleThread.submit(() -> {
+            PortAudio.setUTF_8();//设置Port Audio输出字符格式为UTF-8
+            int err = pa.Pa_Initialize();
+            if (err != PortAudio.paNoError) {
+                logger.fatal("Player Init Failed: {}", pa.Pa_GetErrorText(err));
+                throw new RuntimeException("Player Init Failed: " + pa.Pa_GetErrorText(err));
+            }
 
-        //取得当前的设备的最大输出声道数和采样率
-        getDeviceChannelsAndSampleRateInfo(id, deviceInfo);
+            //获取设备信息
+            int id = pa.Pa_GetDefaultOutputDevice();
+            this.cId = id;
+            PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(id);
+            logger.info("默认输出设备为: {}", deviceInfo.name);
 
-        logger.info("设备最大支持采样率: {} Hz", cMaxOutputSampleRate);
+            //取得当前的设备的最大输出声道数和采样率
+            getDeviceChannelsAndSampleRateInfo(id, deviceInfo);
+
+            logger.info("设备最大支持采样率: {} Hz", cMaxOutputSampleRate);
+        });
     }
 
     private void getDeviceChannelsAndSampleRateInfo(int id, PaDeviceInfo deviceInfo) {
@@ -234,15 +248,8 @@ public class Player implements Runnable, AudioHandler {
      */
     @Override
     public void start() {
-        if (play == null || play.getState() == Thread.State.TERMINATED) {
-            play = new Thread(this);
-            play.setName("Play Thread");
-        }
-
-        if (play.getState() == Thread.State.NEW) {
-            play.start();
-            logger.info("播放线程启动");
-        }
+        //调用在线程池中睡眠的线程，启动播放
+        singleThread.submit(this);
     }
 
     public void stop() {
@@ -260,11 +267,22 @@ public class Player implements Runnable, AudioHandler {
     }
 
     public void terminate() {
-        int err;
-        err = pa.Pa_Terminate();
-        if (err != PortAudio.paNoError) {
-            logger.fatal("Terminate failed: {}", pa.Pa_GetErrorText(err));
-            throw new RuntimeException("Terminate failed: " + pa.Pa_GetErrorText(err));
+        singleThread.submit(() -> {
+            int err;
+            err = pa.Pa_Terminate();
+            if (err != PortAudio.paNoError) {
+                logger.fatal("Terminate failed: {}", pa.Pa_GetErrorText(err));
+                throw new RuntimeException("Terminate failed: " + pa.Pa_GetErrorText(err));
+            }
+        });
+
+        singleThread.shutdown();
+        try {
+            if (!singleThread.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+                singleThread.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            singleThread.shutdownNow();
         }
     }
 

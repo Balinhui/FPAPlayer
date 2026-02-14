@@ -11,6 +11,7 @@ public class Taskbar {
     private static long hwnd;
     private static Stage stageCache;
     private static boolean initSucceed;//成功为true，失败为false
+    private static boolean isRelease = false;
 
     private Taskbar() {}
 
@@ -56,10 +57,14 @@ public class Taskbar {
 
     /**
      * 取消Taskbar进度条状态，释放内存
+     * @return 是否成功释放，如果没有初始化或者已经释放，则直接返回{@code false}
      */
-    public static void release() {
-        if (!initSucceed) return;
+    public static boolean release() {
+        if (!initSucceed || isRelease) return false;
         ITaskBarListAPI.setProgressState(hwnd, ITaskBarListAPI.TBPF_NOPROGRESS);
-        ITaskBarListAPI.release(hwnd);
+        boolean result = ITaskBarListAPI.release(hwnd);
+        initSucceed = false;
+        isRelease = true;
+        return result;
     }
 }

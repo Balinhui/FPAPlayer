@@ -44,9 +44,9 @@ JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_setProgr
 /*
  * Class:     org_balinhui_fpa_nativeapis_ITaskBarListAPI
  * Method:    release
- * Signature: (J)V
+ * Signature: (J)Z
  */
-JNIEXPORT void JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_release
+JNIEXPORT jboolean JNICALL Java_org_balinhui_fpa_nativeapis_ITaskBarListAPI_release
   (JNIEnv *, jclass, jlong);
 
 #ifdef __cplusplus
