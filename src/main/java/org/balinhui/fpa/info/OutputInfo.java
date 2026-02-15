@@ -1,5 +1,7 @@
 package org.balinhui.fpa.info;
 
+import org.balinhui.fpa.util.AudioUtil;
+
 public class OutputInfo {
     public boolean resample;
     public int channels;
@@ -19,7 +21,7 @@ public class OutputInfo {
                 "resample=" + resample +
                 ", channels=" + channels +
                 ", sampleRate=" + sampleRate +
-                ", sampleFormat=" + sampleFormat +
+                ", sampleFormat=" + AudioUtil.getSampleFormatName(sampleFormat) +
                 '}';
     }
 }

@@ -6,6 +6,7 @@ import javafx.scene.image.Image;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
+import javafx.stage.WindowEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.balinhui.fpa.core.AudioHandler;
@@ -21,10 +22,7 @@ import org.balinhui.fpa.nativeapis.MessageFlags;
 import org.balinhui.fpa.ui.Lyric;
 import org.balinhui.fpa.ui.LyricsPlayer;
 import org.balinhui.fpa.ui.Taskbar;
-import org.balinhui.fpa.util.ArrayLoop;
-import org.balinhui.fpa.util.CoverColorExtractor;
-import org.balinhui.fpa.util.Lyrics;
-import org.balinhui.fpa.util.Win32;
+import org.balinhui.fpa.util.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -340,10 +338,7 @@ public class Action {
         logger.trace("(所有)歌曲结束");
         stopLyrics();
 
-        /*if (FPAScreen.mainWindow.isShowing()) {
-            if (Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
-            else logger.warn("Taskbar的COM接口释放失败");
-        }*/
+        //停止任务栏进度条
         Taskbar.setState(ITaskBarListAPI.NO_PROGRESS);
 
         Platform.runLater(() -> {
@@ -354,6 +349,19 @@ public class Action {
             FPAScreen.progress.setProgress(ProgressIndicator.INDETERMINATE_PROGRESS);
             FPAScreen.leftPane.getChildren().remove(FPAScreen.control);
         });
+    }
+
+    public void prepareClose(WindowEvent windowEvent) {
+        //确保taskbar真的被释放
+        if (Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
+        else logger.warn("Taskbar的COM接口释放失败");
+
+        logger.trace("得到窗口消息: {}", windowEvent.getEventType().getName());
+        Config.x(FPAScreen.mainWindow.getX());
+        Config.y(FPAScreen.mainWindow.getY());
+        Config.width(FPAScreen.mainWindow.getScene().getWidth());
+        Config.height(FPAScreen.mainWindow.getScene().getHeight());
+        Config.store();
     }
 
     /**

@@ -24,8 +24,8 @@ import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.nativeapis.DwmAPI;
 import org.balinhui.fpa.ui.Buttons;
 import org.balinhui.fpa.ui.Lyric;
-import org.balinhui.fpa.ui.Taskbar;
 import org.balinhui.fpa.ui.Windows;
+import org.balinhui.fpa.util.Config;
 
 /**
  * FPA播放器的主界面，这里编写界面的布局和各种控件，内容及窗口
@@ -194,7 +194,11 @@ public class FPAScreen extends Application {
         setAnchorPane(true);
         addFileDrop();
 
-        Scene scene = new Scene(root, 600, 370);
+        double oWidth = Config.width();
+        double oHeight = Config.height();
+        if (oWidth == 0.0) oWidth = 600;
+        if (oHeight == 0.0) oHeight = 370;
+        Scene scene = new Scene(root, oWidth, oHeight);
         scene.setOnContextMenuRequested(e ->
                 contextMenu.show(stage, e.getScreenX(), e.getScreenY())
         );
@@ -228,6 +232,10 @@ public class FPAScreen extends Application {
             stage.initStyle(StageStyle.UNIFIED);
         }
         stage.setTitle(Resources.StringRes.app_name);
+        double x = Config.x();
+        if (x != 0.0) stage.setX(x);
+        double y = Config.y();
+        if (y != 0.0) stage.setY(y);
         stage.setMinWidth(280);
         stage.setMinHeight(340);
         stage.setScene(scene);
@@ -239,11 +247,8 @@ public class FPAScreen extends Application {
                 Resources.ImageRes.fpa256,
                 Resources.ImageRes.fpa
         );
-        //确保taskbar真的被释放
-        stage.setOnCloseRequest(windowEvent -> {
-            if (Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
-            else logger.warn("Taskbar的COM接口释放失败");
-        });
+
+        stage.setOnCloseRequest(action::prepareClose);
         stage.show();
         stage.setFullScreenExitHint("");
         stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
