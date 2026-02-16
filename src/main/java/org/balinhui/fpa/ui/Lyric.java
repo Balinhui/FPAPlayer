@@ -13,6 +13,7 @@ import javafx.scene.paint.Paint;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 import org.balinhui.fpa.Resources;
+import org.balinhui.fpa.util.Config;
 
 public class Lyric {
     private final Label lyric;
@@ -23,6 +24,7 @@ public class Lyric {
     private static int currentSize = 1; // 1->small, 2->medium, 3->large
     private static boolean dark = false;
     private final EventHandler<ActionEvent> eventHandler;
+    private static final double DEFORMATION_SIZE = 1.005;
 
     private static final Paint GRAY_WHITE = Color.rgb(190, 190, 190);
     private static final Paint GRAY_DARK = Color.rgb(65, 65, 65);
@@ -31,7 +33,11 @@ public class Lyric {
     public Lyric(String context, long time, EventHandler<ActionEvent> eventHandler) {
         this.lyric = new Label(context);
         this.lyric.setAlignment(Pos.CENTER);
-        this.lyric.setTextAlignment(TextAlignment.CENTER);
+        switch (Config.location()) {
+            case "left" -> this.lyric.setTextAlignment(TextAlignment.LEFT);
+            case "right" -> this.lyric.setTextAlignment(TextAlignment.RIGHT);
+            default -> this.lyric.setTextAlignment(TextAlignment.CENTER);
+        }
         this.lyric.setWrapText(true);
         if (dark) {
             this.lyric.setTextFill(GRAY_WHITE);
@@ -106,16 +112,16 @@ public class Lyric {
         ScaleTransition scaleCome = new ScaleTransition(Duration.millis(200), lyric);
         scaleCome.setFromX(1);
         scaleCome.setFromY(1);
-        scaleCome.setToX(1.01);
-        scaleCome.setToY(1.01);
+        scaleCome.setToX(DEFORMATION_SIZE);
+        scaleCome.setToY(DEFORMATION_SIZE);
         this.come = new ParallelTransition(translateCome, scaleCome);
         this.come.setOnFinished(eventHandler);
         TranslateTransition translateGo = new TranslateTransition(Duration.millis(200), lyric);
         translateGo.setFromY(toY);
         translateGo.setToY(2 * toY);
         ScaleTransition scaleGo = new ScaleTransition(Duration.millis(200), lyric);
-        scaleGo.setFromX(1.01);
-        scaleGo.setFromY(1.01);
+        scaleGo.setFromX(DEFORMATION_SIZE);
+        scaleGo.setFromY(DEFORMATION_SIZE);
         scaleGo.setToX(1);
         scaleGo.setToY(1);
         this.go = new ParallelTransition(translateGo, scaleGo);
@@ -155,10 +161,10 @@ public class Lyric {
         tra.setFromY(y);
         tra.setToY(y);
         ScaleTransition sca = new ScaleTransition(Duration.ONE, lyric);
-        sca.setFromX(1.01);
-        sca.setFromY(1.01);
-        sca.setToX(1.01);
-        sca.setToY(1.01);
+        sca.setFromX(DEFORMATION_SIZE);
+        sca.setFromY(DEFORMATION_SIZE);
+        sca.setToX(DEFORMATION_SIZE);
+        sca.setToY(DEFORMATION_SIZE);
         ParallelTransition par = new ParallelTransition(tra, sca);
         par.play();
     }

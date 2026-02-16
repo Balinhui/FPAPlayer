@@ -324,12 +324,16 @@ public class FPAScreen extends Application {
     }
 
     private static StackPane createLyricsPane() {
-        logger.trace("创建歌词布局");
+        //创建歌词布局
         StackPane lyricsPane = new StackPane();
         lyricsPane.setPrefWidth(smallSize);
         lyricsPane.setPrefHeight(smallSize);
         lyricsPane.setPadding(new Insets(0, 0, 10, 0));
-        lyricsPane.setAlignment(Pos.BOTTOM_CENTER);
+        switch (Config.location()) {
+            case "left" -> lyricsPane.setAlignment(Pos.BOTTOM_LEFT);
+            case "right" -> lyricsPane.setAlignment(Pos.BOTTOM_RIGHT);
+            default -> lyricsPane.setAlignment(Pos.BOTTOM_CENTER);
+        }
         Rectangle clip = new Rectangle();
         clip.widthProperty().bind(lyricsPane.widthProperty());
         clip.heightProperty().bind(lyricsPane.heightProperty());

@@ -20,11 +20,15 @@ public class Config {
     * app.y:double: 窗口的纵坐标
     * app.width:double: 窗口宽度
     * app.height:double: 窗口高度
+    *
+    * lyric.location:String: 歌词位置
     */
     private static final String xKey = "app.x";
     private static final String yKey = "app.y";
     private static final String widthKey = "app.width";
     private static final String heightKey = "app.height";
+
+    private static final String locationKey = "lyric.location";
 
     static {
         checkDir();
@@ -152,6 +156,16 @@ public class Config {
     public static double height() {
         String property = ppt.getProperty(heightKey, "0.0");
         return Double.parseDouble(property);
+    }
+
+    public static void location(String value) {
+        if (value.equals("center")) ppt.setProperty(locationKey, value);
+        if (value.equals("left")) ppt.setProperty(locationKey, value);
+        if (value.equals("right")) ppt.setProperty(locationKey, value);
+    }
+
+    public static String location() {
+        return ppt.getProperty(locationKey, "center");
     }
 
 
