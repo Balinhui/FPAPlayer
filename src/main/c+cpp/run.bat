@@ -1,5 +1,7 @@
+@REM 使用MSVC编译，如果使用gcc，clang编译请勿运行此脚本
 @echo off
 chcp 65001
+@REM 这里需要使用自己VS的x64 Native Tools Commend Prompt路径或者在这命令行中运行脚本
 call "D:\User\Apps\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 
 echo ======================================================================
@@ -13,14 +15,14 @@ set IN_MESSAGER=Messager.cpp
 set IN_WINDOWS_TASKBAR=WindowsTaskbar.cpp
 
 @REM 这是JDK的头文件
-set JNI_PATH=D:\Dev\JDK\jdk-21.0.7\include
+set JNI_PATH=%JAVA_HOME%\include
 
 @REM 这些是输出文件
 set OUT_FILE_CHOOSER=file_chooser.dll
 set OUT_MESSAGER=message.dll
 set OUT_WINDOWS_TASKBAR=windows_taskbar.dll
 
-@REM 输出目录D:\User\DevSrc\IDEAProjects\FPA
+@REM 输出目录
 set DEST_DIR=..\..\..\
 
 @REM cl.exe的编译选项
