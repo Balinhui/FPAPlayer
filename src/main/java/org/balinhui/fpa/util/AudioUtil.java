@@ -2,7 +2,7 @@ package org.balinhui.fpa.util;
 
 import org.bytedeco.javacpp.BytePointer;
 
-import static org.balinhui.portaudio.PaSampleFormat.*;
+import static org.balinhui.fpa.portaudioforjava.PaSampleFormat.*;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.bytedeco.ffmpeg.global.avutil.av_get_sample_fmt_name;
 

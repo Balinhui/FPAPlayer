@@ -57,7 +57,7 @@ public class Resample {
         }
     }
 
-    public synchronized int process(BytePointer[] rawData, int samples, PointerPointer<?> srcData) {
+    public int process(BytePointer[] rawData, int samples, PointerPointer<?> srcData) {
         int ret;
         if (dstSamples == -1) {
             dstSamples = (int) av_rescale_rnd(samples, dstSampleRate, srcSampleRate, AV_ROUND_UP);
@@ -86,7 +86,7 @@ public class Resample {
         return newSamples;
     }
 
-    public synchronized void free() {
+    public void free() {
         if (dstData.get(0) != null) {
             freePointer(dstData.get(0));
             dstData.get(0).deallocate();

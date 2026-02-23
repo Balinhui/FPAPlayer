@@ -14,6 +14,8 @@ import java.util.List;
 public class CoverColorExtractor {
     private static final Logger logger = LogManager.getLogger(CoverColorExtractor.class);
 
+    private CoverColorExtractor() {}
+
     public static String extractOneRGBColor(byte[] data) {
         Color color = extractColors(data, 1).getFirst();
         String colorStr = color.getRed() + ", " +

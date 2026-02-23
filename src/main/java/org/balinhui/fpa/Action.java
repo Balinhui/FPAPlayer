@@ -168,13 +168,19 @@ public class Action {
         decoder.setOnFinished(decoderEvent);
         decoder.start();
         player.setOnPerSongFinished(playerEvent);
-        //状态更新，同时为解码线程让出时间
+
+        //将歌词先准备好
+        setLyrics(info.metadata);
+
+        //界面更新
         Platform.runLater(() -> {
             FPAScreen.rightPane.getChildren().remove(FPAScreen.button);
             logger.trace("移除按钮");
+
+            FPAScreen.lyricsPane.getChildren().clear();
             FPAScreen.rightPane.getChildren().add(FPAScreen.lyricsPane);
             logger.trace("添加歌词面板");
-            setLyrics(info.metadata);
+            FPAScreen.lyricsPane.getChildren().add(lyricList.getFirst().getLabel());
             if (info.cover != null) {
                 FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
                 logger.trace("更新封面");
@@ -193,11 +199,15 @@ public class Action {
             Taskbar.setState(ITaskBarListAPI.NORMAL);
         }
 
+        //等到将要启动播放时开始歌词播放
+        lPlayer.play();
+        logger.info("歌词线程启动");
+
         player.start();//播放线程开始
     }
 
     /**
-     * 读取歌词，初始化歌词面板，启动歌词播放线程
+     * 读取歌词，将歌词添加到{@code lyricList}中
      * @param metadata 歌曲元数据
      */
     private void setLyrics(Map<String, String> metadata) {
@@ -205,7 +215,6 @@ public class Action {
         logger.trace("获取歌词和时间轴");
 
         //清空上次剩余内容
-        FPAScreen.lyricsPane.getChildren().clear();
         lyricList.clear();
         int currentLine = 0;
         stopLyrics();
@@ -218,10 +227,7 @@ public class Action {
             lyricList.add(new Lyric(lyric, delay, actionEvent -> lyricsPaneAdd(line + 1)));
             currentLine++;
         }
-        FPAScreen.lyricsPane.getChildren().add(lyricList.getFirst().getLabel());
         lPlayer = new LyricsPlayer(lyricList);
-        lPlayer.play();
-        logger.info("歌词线程启动");
     }
 
     private void lyricsPaneAdd(int currentLyricLine) {

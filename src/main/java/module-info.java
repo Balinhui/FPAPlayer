@@ -2,7 +2,6 @@ module org.balinhui.fpa {
     requires javafx.controls;
     requires org.bytedeco.ffmpeg;
 
-    requires PortAudio;
     requires org.jetbrains.annotations;
     requires com.sun.jna;
     requires com.sun.jna.platform;
@@ -12,4 +11,5 @@ module org.balinhui.fpa {
 
     exports org.balinhui.fpa to javafx.graphics;
     exports org.balinhui.fpa.nativeapis to com.sun.jna;
+    exports org.balinhui.fpa.portaudioforjava to com.sun.jna;
 }

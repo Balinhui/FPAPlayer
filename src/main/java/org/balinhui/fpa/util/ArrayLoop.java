@@ -29,7 +29,7 @@ public class ArrayLoop {
      * @param <T> float[] 或 short[]
      */
     @SuppressWarnings("unchecked")
-    public synchronized static<T> T getArray(int size, Class<T> cls) {
+    public static<T> T getArray(int size, Class<T> cls) {
         //检测传入的类型是否为数组类型
         if (!cls.isArray()) {
             logger.fatal("传入类型不是数组");
@@ -64,7 +64,7 @@ public class ArrayLoop {
      * @param <T> float[] 或 short[]
      */
     @SuppressWarnings("unchecked")
-    public synchronized static<T> void returnArray(T array) {
+    public static<T> void returnArray(T array) {
         if (array == null) {
             logger.warn("回收数组为null");
             return;
@@ -88,7 +88,7 @@ public class ArrayLoop {
      * @param newSize 新的大小
      * @return 重新分配后的数组
      */
-    public synchronized static short[] reSize(short[] data, int newSize) {
+    public static short[] reSize(short[] data, int newSize) {
         if (data.length == newSize) return data;
         return new short[newSize];
     }
@@ -100,7 +100,7 @@ public class ArrayLoop {
      * @param newSize 新的大小
      * @return 重新分配后的数组
      */
-    public synchronized static float[] reSize(float[] data, int newSize) {
+    public static float[] reSize(float[] data, int newSize) {
         if (data.length == newSize) return data;
         return new float[newSize];
     }

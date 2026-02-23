@@ -8,6 +8,10 @@ import java.util.List;
 
 public class LyricsPlayer {
     private final List<Lyric> lyrics;
+
+    /**
+     * 代表当前在歌词面板下方的歌词索引
+     */
     private int currentIndex = 0;
     private long startTime = 0;
     private volatile boolean playing = false;
@@ -47,7 +51,7 @@ public class LyricsPlayer {
             long position = getCurrentPosition();
             Lyric lyric = lyrics.get(currentIndex);
             if (position >= lyric.getTime()) {
-                addLyrics(currentIndex);
+                pushLyrics(currentIndex);
                 currentIndex++;
             }
             try {
@@ -56,8 +60,16 @@ public class LyricsPlayer {
         }
     }
 
-    private void addLyrics(int currentLyricLine) {
+    private void pushLyrics(int currentLyricLine) {
         Platform.runLater(() -> {
+            //排查多余的歌词，不知是什么情况而产生，暂时决定直接移除
+            if (FPAScreen.lyricsPane.getChildren().size() > 3) {
+                int count = FPAScreen.lyricsPane.getChildren().size() - 3;//多余的歌词
+                for (int i = 0; i < count; i++) {
+                    FPAScreen.lyricsPane.getChildren().remove(i);//移除前面的的，留下3个
+                }
+            }
+
             if (currentLyricLine > 1) {
                 FPAScreen.lyricsPane.getChildren().remove(
                         lyrics.get(currentLyricLine - 2).getLabel()

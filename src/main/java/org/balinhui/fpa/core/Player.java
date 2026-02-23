@@ -5,9 +5,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
+import org.balinhui.fpa.portaudioforjava.*;
 import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.AudioUtil;
-import org.balinhui.portaudio.*;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -63,6 +63,9 @@ public class Player implements Runnable, AudioHandler {
                 logger.fatal("Player Init Failed: {}", pa.Pa_GetErrorText(err));
                 throw new RuntimeException("Player Init Failed: " + pa.Pa_GetErrorText(err));
             }
+
+            //公布PortAudio版本
+            logger.info("当前PortAudio版本: {}", pa.Pa_GetVersionText());
 
             //获取设备信息
             int id = pa.Pa_GetDefaultOutputDevice();
@@ -202,6 +205,10 @@ public class Player implements Runnable, AudioHandler {
             logger.fatal("开始流失败");
             throw new RuntimeException("开始流失败");
         }
+        if (pa.Pa_GetStreamWriteAvailable(stream) != 0) {
+            logger.fatal("当前流无法写入");
+            throw new RuntimeException("当前流无法写入");
+        }
         while (!buffer.isEmpty() || !CurrentStatus.is(CurrentStatus.Status.STOP)) {//当解码完成同时缓冲区内没有数据时才停止
             boolean paused;//用于判断是否暂停了的标识，如果是从暂停中启动，则为true。防止提前退出
             try {
@@ -268,6 +275,10 @@ public class Player implements Runnable, AudioHandler {
 
     public void terminate() {
         singleThread.submit(() -> {
+            if (!pa.Pa_IsStreamStopped(stream)) {
+                System.out.println("exe");
+                stop();
+            }
             int err;
             err = pa.Pa_Terminate();
             if (err != PortAudio.paNoError) {

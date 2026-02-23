@@ -47,6 +47,9 @@ public class Decoder implements Runnable, AudioHandler {
     }
 
     private Decoder() {
+        try (BytePointer versionPointer = av_version_info()) {
+            logger.info("当前FFmpeg版本: {}", versionPointer.getString());
+        }
         av_log_set_level(AV_LOG_ERROR);
     }
 
