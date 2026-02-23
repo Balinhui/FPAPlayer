@@ -284,7 +284,7 @@ public class Decoder implements Runnable, AudioHandler {
                         if (ret == AVERROR_EAGAIN() || ret == AVERROR_EOF)
                             break;
                         else if (ret < 0) {
-                            logger.error("Error during decoding");
+                            logger.error("解码出错或者结束解码");
                             break mainloop;
                         }
 
@@ -314,7 +314,8 @@ public class Decoder implements Runnable, AudioHandler {
                                 buffer.put(Buffer.Data.of(samples, oldSamples, floatData));
                             }
                         }
-                        av_frame_unref(frame);
+                        // avcodec_receive_frame() 不会分配新的内存，所以不用调用
+                        // av_frame_unref(frame);
                     }
                 }
                 av_packet_unref(packet);

@@ -23,13 +23,16 @@ public class ArrayLoop {
      * 向数组池申请数组
      * 如果请求的类型在<code>arrays</code>中存在，则会将<code>arrays</code>中对应类型的数组集合的第一个数组返回，并从数组集合中去除<br>
      * 如果没有，则会创建一个为参数cls类型的数组集合，默认大小为<code>LIST_SIZE = 50</code>个，然后返回第一个数组，再去除
+     * <br>
+     * 重要！！！由于HashMap和ArrayList是非线程安全的，所以此方法已加锁
+     *
      * @param size 申请数组的大小
      * @param cls 申请数组的类型
      * @return 申请的数组
      * @param <T> float[] 或 short[]
      */
     @SuppressWarnings("unchecked")
-    public static<T> T getArray(int size, Class<T> cls) {
+    public synchronized static<T> T getArray(int size, Class<T> cls) {
         //检测传入的类型是否为数组类型
         if (!cls.isArray()) {
             logger.fatal("传入类型不是数组");
@@ -60,11 +63,14 @@ public class ArrayLoop {
 
     /**
      * 返还使用后的数组，将内存重复使用，在getArray()方法中去除了给出的数组，在这个方法中将添加回来，形成循环
+     * <br>
+     * 重要！！！由于HashMap和ArrayList是非线程安全的，所以此方法已加锁
+     *
      * @param array 使用完返回的数组
      * @param <T> float[] 或 short[]
      */
     @SuppressWarnings("unchecked")
-    public static<T> void returnArray(T array) {
+    public synchronized static<T> void returnArray(T array) {
         if (array == null) {
             logger.warn("回收数组为null");
             return;
