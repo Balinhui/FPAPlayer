@@ -1,8 +1,8 @@
-#include "org_balinhui_fpa_nativeapis_ITaskBarListAPI.h"
+﻿#include "org_balinhui_fpa_nativeapis_ITaskBarListAPI.h"
 #include <Windows.h>
 #include <ShObjIdl.h>
-#pragma comment(lib, "ole32.lib")
-#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "Ole32.lib")
+#pragma comment(lib, "User32.lib")
 
 static ITaskbarList3 *g_pTaskbarList = NULL;
 

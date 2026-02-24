@@ -383,7 +383,7 @@ public class FPAScreen extends Application {
             if (root.getChildren().size() == 2) {
                 root.getChildren().add(1, rightPane);
                 setAnchorPane(true);
-                view.setOnMouseClicked(event -> logger.trace("点击图片无用，因为没有缩小至简易模式"));
+                view.setOnMouseClicked(null);
             }
         }
     }

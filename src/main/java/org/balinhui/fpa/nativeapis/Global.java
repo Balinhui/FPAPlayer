@@ -1,12 +1,18 @@
 package org.balinhui.fpa.nativeapis;
 
+import java.util.List;
+
 public class Global {
     static {
         System.loadLibrary("file_chooser");
         System.loadLibrary("message");
     }
 
-    public static native String[] chooseFiles();
+    /**
+     * 打开一个文件选择器
+     * @return 选择的文件
+     */
+    public static native String[] chooseFiles(String windowName, List<String> suffixNames);
 
     /**
      * 调用系统的消息对话框

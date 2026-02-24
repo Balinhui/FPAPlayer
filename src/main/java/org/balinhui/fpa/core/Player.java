@@ -275,10 +275,7 @@ public class Player implements Runnable, AudioHandler {
 
     public void terminate() {
         singleThread.submit(() -> {
-            if (!pa.Pa_IsStreamStopped(stream)) {
-                System.out.println("exe");
-                stop();
-            }
+            if (!pa.Pa_IsStreamStopped(stream)) stop();
             int err;
             err = pa.Pa_Terminate();
             if (err != PortAudio.paNoError) {

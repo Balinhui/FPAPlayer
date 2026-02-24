@@ -2,12 +2,12 @@ package org.balinhui.fpa.core;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.balinhui.fpa.FPAScreen;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
-import org.balinhui.fpa.util.ArrayLoop;
-import org.balinhui.fpa.util.AudioUtil;
-import org.balinhui.fpa.util.FlacCoverExtractor;
-import org.balinhui.fpa.util.Resample;
+import org.balinhui.fpa.nativeapis.Global;
+import org.balinhui.fpa.nativeapis.MessageFlags;
+import org.balinhui.fpa.util.*;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -112,8 +112,15 @@ public class Decoder implements Runnable, AudioHandler {
                 }
             }
             if (codecPar == null) {
-                logger.error("Doesnt find codec parameter");
-                throw new RuntimeException("Doesnt find codec parameter");
+                logger.error("没有找到解码器参数，文件格式可能不符");
+                //throw new RuntimeException("Doesn't find codec parameter");
+                Global.message(
+                        Win32.getLongHWND(FPAScreen.mainWindow),
+                        "错误的文件类型!",
+                        "请选择音频文件!!!",
+                        MessageFlags.DisplayButtons.OK | MessageFlags.Icons.ERROR
+                );
+                return null;
             }
             logger.trace("找到解码器参数");
             byte[] coverData = null;

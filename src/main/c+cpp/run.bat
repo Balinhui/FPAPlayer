@@ -10,7 +10,7 @@ echo 编译器: cl.exe
 echo ======================================================================
 
 @REM 这些是源文件
-set IN_FILE_CHOOSER=FileChooser.c
+set IN_FILE_CHOOSER=FileChooser.cpp
 set IN_MESSAGER=Messager.cpp
 set IN_WINDOWS_TASKBAR=WindowsTaskbar.cpp
 
@@ -174,4 +174,3 @@ for %%f in (*.exp) do (
 echo -------------------------------清理完成-------------------------------
 
 :end
-pause

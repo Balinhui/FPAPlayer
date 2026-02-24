@@ -72,12 +72,13 @@ public class Action {
      * “选择文件”按钮点击事件
      */
     public void clickChooseFileButton() {
-        logger.info("按钮被点击");
         if (!CurrentStatus.is(CurrentStatus.Status.STOP)) {
-            logger.info("播放当中，不许选择文件");
             return;
         }
-        String[] paths = Global.chooseFiles();
+        String[] paths = Global.chooseFiles(
+                FPAScreen.mainWindow.getTitle(),
+                Resources.SuffixNameRes.suffix_names
+        );
         if (paths == null) {
             logger.info("没有文件");
             return;
@@ -117,6 +118,7 @@ public class Action {
     private void processFile(String path) {
         logger.trace("单选文件");
         info = decoder.read(path);
+        if (info == null) return;
         logger.trace("读取歌曲信息: {}", path);
         OutputInfo output = player.read(info);
         logger.info("取得输出信息：{}", output);
@@ -127,6 +129,7 @@ public class Action {
     private void processFiles(String[] path) {
         logger.trace("多选文件");
         info = decoder.read(path);
+        if (info == null) return;
         logger.trace("读取歌曲第一首信息: {}", path[0]);
         OutputInfo output = player.readForSameOut();
         logger.info("取得第一首输出信息：{}", output);

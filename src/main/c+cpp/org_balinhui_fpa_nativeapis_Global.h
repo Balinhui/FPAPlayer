@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     org_balinhui_fpa_nativeapis_Global
  * Method:    chooseFiles
- * Signature: ()[Ljava/lang/String;
+ * Signature: (Ljava/lang/String;Ljava/util/List;)[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_balinhui_fpa_nativeapis_Global_chooseFiles
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jstring, jobject);
 
 /*
  * Class:     org_balinhui_fpa_nativeapis_Global

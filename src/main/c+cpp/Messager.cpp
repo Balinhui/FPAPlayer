@@ -1,11 +1,11 @@
 #include "org_balinhui_fpa_nativeapis_Global.h"
 #include <Windows.h>
-#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "User32.lib")
 
 JNIEXPORT jint JNICALL Java_org_balinhui_fpa_nativeapis_Global_message
 (JNIEnv *env, jclass clazz, jlong hwnd, jstring title, jstring msg, jlong type) {
-    const jchar* wtitle = env->GetStringChars(title, nullptr);
-    const jchar* wmsg = env->GetStringChars(msg, nullptr);
+    const jchar* wtitle = env->GetStringChars(title, JNI_FALSE);
+    const jchar* wmsg = env->GetStringChars(msg, JNI_FALSE);
 
     HWND window;
     if (hwnd == 0) {
