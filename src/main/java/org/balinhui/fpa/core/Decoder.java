@@ -32,6 +32,13 @@ import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 
+/**
+ * 用于解码音频，采用单例对象。依赖由bytedeco的JavaCPP绑定的FFmpeg实现，
+ * 需使用{@code read()}读取音频信息，并通过{@code start}启动解码线程。
+ * 读取和解码分别使用不同的{@code AVFormatContext}对象，防止在高并发中
+ * 资源的访问出错。解码完成后的数据，将会放入缓冲区中{@link Buffer}，供
+ * 播放线程使用。
+ */
 public class Decoder implements Runnable, AudioHandler {
     private static final Logger logger = LogManager.getLogger(Decoder.class);
     private String[] paths;
@@ -141,7 +148,6 @@ public class Decoder implements Runnable, AudioHandler {
             avformat_close_input(fmtCtx);
             avformat_free_context(fmtCtx);
             fmtCtx.deallocate();
-            if (codecPar != null) codecPar.deallocate();
             logger.trace("释放资源");
         }
     }
@@ -330,9 +336,6 @@ public class Decoder implements Runnable, AudioHandler {
             av_frame_free(frame);
             av_packet_free(packet);
             fmtCtx.deallocate();
-            codecCtx.deallocate();
-            frame.deallocate();
-            packet.deallocate();
             currentProgress++;
             if (event != null && CurrentStatus.is(CurrentStatus.Status.PLAYING)) {
                 //向播放器发送结束信息

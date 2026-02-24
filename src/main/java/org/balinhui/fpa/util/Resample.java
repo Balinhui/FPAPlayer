@@ -31,7 +31,6 @@ public class Resample {
         this.dstSampleRate = info.sampleRate;
         this.dstSampleFormat = info.sampleFormat;
         dstData = new PointerPointer<>(1);
-        dstData.put(0, new BytePointer());
         linSize = new IntPointer();
         AVChannelLayout srcLayout = new AVChannelLayout().nb_channels(srcChannels);
         AVChannelLayout dstLayout = new AVChannelLayout().nb_channels(dstChannels);
@@ -70,8 +69,7 @@ public class Resample {
         }
         dstSamples = (int) av_rescale_rnd(swr_get_delay(swrCtx, srcSampleRate) + samples, dstSampleRate, srcSampleRate, AV_ROUND_UP);
         if (dstSamples > maxDstSamples) {
-            freePointer(dstData.get(0));
-            dstData.put(0, new BytePointer());
+            av_freep(dstData.position(0));
             ret = av_samples_alloc(dstData, linSize, dstChannels, dstSamples, dstSampleFormat, 1);
             if (ret < 0) {
                 logger.fatal("分配内存失败");
@@ -87,22 +85,14 @@ public class Resample {
     }
 
     public void free() {
-        if (dstData.get(0) != null) {
-            freePointer(dstData.get(0));
-            dstData.get(0).deallocate();
+        if (!dstData.isNull()) {
+            av_freep(dstData);
         }
-        av_free(linSize);
+        dstData.deallocate();
+        linSize.deallocate();
         swr_free(swrCtx);
-        linSize.deallocate();//可能会导致崩溃
-        swrCtx.deallocate();
         dstSamples = -1;
         maxDstSamples = -1;
         logger.trace("释放重采样资源");
-    }
-
-    private void freePointer(Pointer pointer) {
-        PointerPointer<BytePointer> clear = new PointerPointer<>(1);
-        clear.put(0, pointer);
-        av_freep(clear);
     }
 }

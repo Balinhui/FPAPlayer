@@ -4,10 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 数组池，实现数组和内存的循环使用
@@ -88,26 +85,34 @@ public class ArrayLoop {
     }
 
     /**
-     * 将大小不符合的short数组重新分配大小
-     * 不只是简单的扩容，因为扩容可能导致此数组重新使用时后面有残留的旧数据影响
+     * 将大小不符合的short数组重新分配大小<br>
+     * 对于要求的新数组容量小于旧数组容量，则将旧数组多出的部分填充为0.
      * @param data 需要重新分配大小的short数组
      * @param newSize 新的大小
      * @return 重新分配后的数组
      */
     public static short[] reSize(short[] data, int newSize) {
         if (data.length == newSize) return data;
+        else if (data.length > newSize) {
+            Arrays.fill(data, newSize, data.length, (short) 0);
+            return data;
+        }
         return new short[newSize];
     }
 
     /**
-     * 将大小不符合的float数组重新分配大小
-     * 不只是简单的扩容，因为扩容可能导致此数组重新使用时后面有残留的旧数据影响
+     * 将大小不符合的float数组重新分配大小<br>
+     * 对于要求的新数组容量小于旧数组容量，则将旧数组多出的部分填充为0.
      * @param data 需要重新分配大小的float数组
      * @param newSize 新的大小
      * @return 重新分配后的数组
      */
     public static float[] reSize(float[] data, int newSize) {
         if (data.length == newSize) return data;
+        else if (data.length > newSize) {
+            Arrays.fill(data, newSize, data.length, 0F);
+            return data;
+        }
         return new float[newSize];
     }
 
@@ -117,6 +122,6 @@ public class ArrayLoop {
      */
     public static void clear() {
         arrays.clear();
-        logger.trace("清空集合");
+        logger.trace("清空数组集合");
     }
 }
