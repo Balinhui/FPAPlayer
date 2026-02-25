@@ -80,7 +80,6 @@ public class Action {
                 Resources.SuffixNameRes.suffix_names
         );
         if (paths == null) {
-            logger.info("没有文件");
             return;
         }
         inputPaths(paths);
@@ -106,7 +105,6 @@ public class Action {
     }
 
     public void clickSettingApplyButton() {
-        logger.info("设置中点击应用");
         FPAScreen.settingWindow.close();
     }
 
@@ -146,8 +144,10 @@ public class Action {
             //播放完一首后收到结束信息时调用，用于更新UI、时间轴和歌词
             playedSamples = 0;
             currentTimeSeconds = 0.0;
+            setLyrics(info.metadata);
             Platform.runLater(() -> {
-                setLyrics(info.metadata);
+                FPAScreen.lyricsPane.getChildren().clear();
+                FPAScreen.lyricsPane.getChildren().add(lyricList.getFirst().getLabel());
                 if (info.cover != null) {
                     FPAScreen.view.setImage(new Image(new ByteArrayInputStream(info.cover)));
                     logger.trace("更新封面");
@@ -156,6 +156,7 @@ public class Action {
                     );
                 }
             });
+            lPlayer.play();
         });
     }
 
@@ -362,14 +363,16 @@ public class Action {
 
     public void prepareClose(WindowEvent windowEvent) {
         //确保taskbar真的被释放
-        if (Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
-        else logger.warn("Taskbar的COM接口释放失败");
+        if (Taskbar.isInitSucceed() && Taskbar.release()) logger.info("Taskbar的COM接口释放完成");
+        else if (Taskbar.isInitSucceed()) logger.warn("Taskbar的COM接口释放失败");
 
         logger.trace("得到窗口消息: {}", windowEvent.getEventType().getName());
-        Config.x(FPAScreen.mainWindow.getX());
-        Config.y(FPAScreen.mainWindow.getY());
-        Config.width(FPAScreen.mainWindow.getScene().getWidth());
-        Config.height(FPAScreen.mainWindow.getScene().getHeight());
+        if (!FPAScreen.mainWindow.isMaximized() && !FPAScreen.mainWindow.isFullScreen()) {
+            Config.x(FPAScreen.mainWindow.getX());
+            Config.y(FPAScreen.mainWindow.getY());
+            Config.width(FPAScreen.mainWindow.getScene().getWidth());
+            Config.height(FPAScreen.mainWindow.getScene().getHeight());
+        }
         Config.store();
     }
 

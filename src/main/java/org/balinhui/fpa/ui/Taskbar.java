@@ -65,6 +65,14 @@ public class Taskbar {
     }
 
     /**
+     * 得知是否初始化完成或成功
+     * @return 初始化成功返回{@code true}，失败返回{@code false}
+     */
+    public static boolean isInitSucceed() {
+        return initSucceed;
+    }
+
+    /**
      * 取消Taskbar进度条状态，释放内存
      * @return 是否成功释放，如果没有初始化或者已经释放，则直接返回{@code false}
      */
