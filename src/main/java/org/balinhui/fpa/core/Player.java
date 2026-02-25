@@ -1,31 +1,34 @@
 package org.balinhui.fpa.core;
 
-import com.sun.jna.ptr.PointerByReference;
+import com.portaudio.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.balinhui.fpa.FPAScreen;
 import org.balinhui.fpa.info.AudioInfo;
 import org.balinhui.fpa.info.OutputInfo;
-import org.balinhui.fpa.portaudioforjava.*;
+import org.balinhui.fpa.nativeapis.Global;
+import org.balinhui.fpa.nativeapis.MessageFlags;
 import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.AudioUtil;
+import org.balinhui.fpa.util.Win32;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import static com.portaudio.PortAudio.*;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLT;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_S16;
 
 public class Player implements Runnable, AudioHandler {
     private static final Logger logger = LogManager.getLogger(Player.class);
-    private static final PortAudio pa = PortAudio.INSTANCE;
     private final Buffer buffer = new Buffer();
     private static final Player player = new Player();
     private int cId;//Current device id
     private int cMaxOutputChannels;//current
     private int cMaxOutputSampleRate;//current
-    private PaStream stream;
+    private BlockingStream stream;
     private FinishEvent event;//当播放循环结束后会调用
     private FinishEvent finishPerSong;
     private PlaySample start;//播放循环期间每一帧调用一次
@@ -57,20 +60,24 @@ public class Player implements Runnable, AudioHandler {
         singleThread = Executors.newSingleThreadExecutor(factory);
 
         singleThread.submit(() -> {
-            PortAudio.setUTF_8();//设置Port Audio输出字符格式为UTF-8
-            int err = pa.Pa_Initialize();
-            if (err != PortAudio.paNoError) {
-                logger.fatal("Player Init Failed: {}", pa.Pa_GetErrorText(err));
-                throw new RuntimeException("Player Init Failed: " + pa.Pa_GetErrorText(err));
+            //初始化PortAudio
+            initialize();
+
+            //Debug信息
+            {
+                logger.debug("asio host type: {}",
+                        hostApiTypeIdToHostApiIndex(HOST_API_TYPE_ASIO)
+                );
+
+                logger.debug("wasapi host type: {}",
+                        hostApiTypeIdToHostApiIndex(HOST_API_TYPE_WASAPI)
+                );
             }
 
-            //公布PortAudio版本
-            logger.info("当前PortAudio版本: {}", pa.Pa_GetVersionText());
-
-            //获取设备信息
-            int id = pa.Pa_GetDefaultOutputDevice();
+            //获取默认输出设备信息
+            int id = getDefaultOutputDevice();
             this.cId = id;
-            PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(id);
+            DeviceInfo deviceInfo = getDeviceInfo(id);
             logger.info("默认输出设备为: {}", deviceInfo.name);
 
             //取得当前的设备的最大输出声道数和采样率
@@ -80,22 +87,36 @@ public class Player implements Runnable, AudioHandler {
         });
     }
 
-    private void getDeviceChannelsAndSampleRateInfo(int id, PaDeviceInfo deviceInfo) {
+    private void getDeviceChannelsAndSampleRateInfo(int id, DeviceInfo deviceInfo) {
         this.cMaxOutputChannels = deviceInfo.maxOutputChannels;
-        PaStreamParameters test = new PaStreamParameters();
+        StreamParameters test = new StreamParameters();
         test.device = id;
         test.channelCount = this.cMaxOutputChannels;
-        test.sampleFormat = PaSampleFormat.paFloat32;
         test.suggestedLatency = deviceInfo.defaultLowOutputLatency;
-        double[] sampleRatesToTest = {384000.0, 192000.0, 96000.0, 88200.0, 48000.0, 44100.0, 8000.0};
-        int maxOutputSampleRate = (int) sampleRatesToTest[sampleRatesToTest.length - 1];
-        for (double v : sampleRatesToTest) {
-            if (pa.Pa_IsFormatSupported(null, test, v) == PortAudio.paFormatIsSupported) {
-                maxOutputSampleRate = (int) v;
+        int[] sampleRatesToTest = {384000, 192000, 96000, 88200, 48000, 44100, 8000};
+        int maxOutputSampleRate = sampleRatesToTest[sampleRatesToTest.length - 1];
+        for (int v : sampleRatesToTest) {
+            if (isFormatSupported(null, test, v) == 0) {
+                maxOutputSampleRate = v;
                 break;
             }
         }
         this.cMaxOutputSampleRate = maxOutputSampleRate;
+    }
+
+    /**
+     * 刷新默认输出设备，如果检测到设备变化，则重新读取
+     */
+    private void refreshDevice() {
+        int id = getDefaultOutputDevice();
+        if (id != cId) {
+            logger.info("检测到输出设备更改，由id: {} -> id: {}", cId, id);
+            this.cId = id;
+            DeviceInfo deviceInfo = getDeviceInfo(id);
+            logger.trace("取得当前输出设备: {}", deviceInfo.name);
+
+            getDeviceChannelsAndSampleRateInfo(id, deviceInfo);
+        }
     }
 
     /**
@@ -105,16 +126,7 @@ public class Player implements Runnable, AudioHandler {
      */
     public OutputInfo read(AudioInfo audioInfo) {
         //刷新设备
-        int id = pa.Pa_GetDefaultOutputDevice();
-        if (id != cId) {
-            logger.info("检测到输出设备更改，由id: {} -> id: {}", cId, id);
-            this.cId = id;
-            PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(id);
-            logger.trace("取得当前输出设备: {}", deviceInfo.name);
-
-            getDeviceChannelsAndSampleRateInfo(id, deviceInfo);
-        }
-
+        refreshDevice();
 
         int channels = audioInfo.channels, sampleRate = audioInfo.sampleRate, sampleFormat = audioInfo.sampleFormat;
         boolean resample = false;
@@ -154,11 +166,14 @@ public class Player implements Runnable, AudioHandler {
      * @return 播放时的输出信息
      */
     public OutputInfo readForSameOut() {
+        //刷新设备
+        refreshDevice();
+
         int channels = 2;
         int sampleRate = 44100;
         boolean resample = true;
 
-        openStream(channels, PaSampleFormat.paInt16, sampleRate);
+        openStream(channels, FORMAT_INT_16, sampleRate);
 
         return new OutputInfo(resample, channels, sampleRate, AV_SAMPLE_FMT_S16);
     }
@@ -169,29 +184,21 @@ public class Player implements Runnable, AudioHandler {
      * @param sampleFormat 采样格式
      * @param sampleRate 采样数
      */
-    private void openStream(int channels, long sampleFormat, double sampleRate) {
-        PointerByReference streamRef = new PointerByReference();
-        PaDeviceInfo deviceInfo = pa.Pa_GetDeviceInfo(cId);
-        PaStreamParameters parameters = new PaStreamParameters();
+    private void openStream(int channels, int sampleFormat, int sampleRate) {
+        DeviceInfo deviceInfo = getDeviceInfo(cId);
+        StreamParameters parameters = new StreamParameters();
         parameters.device = cId;
         parameters.channelCount = channels;
         parameters.sampleFormat = sampleFormat;
         parameters.suggestedLatency = deviceInfo.defaultLowOutputLatency;
-        int err = pa.Pa_OpenStream(
-                streamRef,
+
+        stream = PortAudio.openStream(
                 null,
                 parameters,
                 sampleRate,
-                PortAudio.paFramesPerBufferUnspecified,
-                PaStreamFlags.paNoFlag,
-                null,
-                null
+                0,
+                0
         );
-        if (err != PortAudio.paNoError) {
-            logger.fatal("Open stream failed: {}", pa.Pa_GetErrorText(err));
-            throw new RuntimeException("Open stream failed: " + pa.Pa_GetErrorText(err));
-        }
-        stream = new PaStream(streamRef);
         logger.info("打开流");
     }
 
@@ -200,14 +207,21 @@ public class Player implements Runnable, AudioHandler {
      */
     @Override
     public void run() {
-        int err = pa.Pa_StartStream(stream);
-        if (err != PortAudio.paNoError) {
-            logger.fatal("开始流失败");
-            throw new RuntimeException("开始流失败");
-        }
-        if (pa.Pa_GetStreamWriteAvailable(stream) != 0) {
+        if (stream == null) return;
+        if (!stream.isActive())
+            stream.start();
+
+        if (stream.getWriteAvailable() != 0) {
             logger.fatal("当前流无法写入");
-            throw new RuntimeException("当前流无法写入");
+            int result = Global.message(
+                    Win32.getLongHWND(FPAScreen.mainWindow),
+                    "出错",
+                    "歌曲的流无法写入设备，可能是设备问题或请重试",
+                    MessageFlags.DisplayButtons.RETRY_CANCEL | MessageFlags.Icons.WARNING
+            );
+            if (result == MessageFlags.ReturnValue.RETRY) run();
+            CurrentStatus.to(CurrentStatus.Status.STOP);
+            buffer.clear();
         }
         while (!buffer.isEmpty() || !CurrentStatus.is(CurrentStatus.Status.STOP)) {//当解码完成同时缓冲区内没有数据时才停止
             boolean paused;//用于判断是否暂停了的标识，如果是从暂停中启动，则为true。防止提前退出
@@ -229,20 +243,19 @@ public class Player implements Runnable, AudioHandler {
             } else {
                 //正常播放解码信息
                 start.handler(data.old_samples);
+                boolean result = false;
                 switch (data.type) {
                     case SHORT -> {
-                        err = pa.Pa_WriteStream(stream, (short[]) data.data, data.nb_samples);
+                        result = stream.write((short[]) data.data, data.nb_samples);
                         ArrayLoop.returnArray((short[]) data.data);
                     }
                     case FLOAT -> {
-                        err = pa.Pa_WriteStream(stream, (float[]) data.data, data.nb_samples);
+                        result = stream.write((float[]) data.data, data.nb_samples);
                         ArrayLoop.returnArray((float[]) data.data);
                     }
                 }
-                if (err != PortAudio.paNoError) {
-                    logger.fatal("Write stream failed: {}", pa.Pa_GetErrorText(err));
-                    if (err != -9980)//放过Output underflowed一马
-                        throw new RuntimeException("Write stream failed: " + pa.Pa_GetErrorText(err));
+                if (result) {
+                    logger.fatal("Write stream failed: output underflow");
                 }
             }
         }
@@ -260,28 +273,17 @@ public class Player implements Runnable, AudioHandler {
     }
 
     public void stop() {
-        int err;
-        err = pa.Pa_StopStream(stream);
-        if (err != PortAudio.paNoError) {
-            logger.fatal("Stop stream failed: {}", pa.Pa_GetErrorText(err));
-            throw new RuntimeException("Stop stream failed: " + pa.Pa_GetErrorText(err));
-        }
-        err = pa.Pa_CloseStream(stream);
-        if (err != PortAudio.paNoError) {
-            logger.fatal("Close stream failed: {}", pa.Pa_GetErrorText(err));
-            throw new RuntimeException("Close stream failed: " + pa.Pa_GetErrorText(err));
-        }
+        //先将流中数据完后暂停，然后停止
+        stream.stop();
+
+        stream.close();
     }
 
     public void terminate() {
         singleThread.submit(() -> {
-            if (!pa.Pa_IsStreamStopped(stream)) stop();
-            int err;
-            err = pa.Pa_Terminate();
-            if (err != PortAudio.paNoError) {
-                logger.fatal("Terminate failed: {}", pa.Pa_GetErrorText(err));
-                throw new RuntimeException("Terminate failed: " + pa.Pa_GetErrorText(err));
-            }
+            if (!stream.isStopped()) stop();
+
+            PortAudio.terminate();
         });
 
         singleThread.shutdown();

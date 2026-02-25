@@ -2,9 +2,8 @@ package org.balinhui.fpa.util;
 
 import org.bytedeco.javacpp.BytePointer;
 
-import static org.balinhui.fpa.portaudioforjava.PaSampleFormat.*;
+import static com.portaudio.PortAudio.*;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avutil.av_get_sample_fmt_name;
 
 public class AudioUtil {
     private AudioUtil() {}
@@ -29,12 +28,12 @@ public class AudioUtil {
      * @param sampleFormat 采样格式 AudioInfo中的sampleFormat
      * @return PortAudio的采样格式
      */
-    public static long getPortAudioSampleFormat(int sampleFormat) {
+    public static int getPortAudioSampleFormat(int sampleFormat) {
         return switch (sampleFormat) {
-            case AV_SAMPLE_FMT_U8, AV_SAMPLE_FMT_U8P -> paUInt8;
-            case AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_S16P -> paInt16;
-            case AV_SAMPLE_FMT_S32, AV_SAMPLE_FMT_S32P -> paInt32;
-            case AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_FLTP -> paFloat32;
+            case AV_SAMPLE_FMT_U8, AV_SAMPLE_FMT_U8P -> FORMAT_UINT_8;
+            case AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_S16P -> FORMAT_INT_16;
+            case AV_SAMPLE_FMT_S32, AV_SAMPLE_FMT_S32P -> FORMAT_INT_32;
+            case AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_FLTP -> FORMAT_FLOAT_32;
             default -> -1;
         };
     }

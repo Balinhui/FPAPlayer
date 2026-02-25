@@ -252,6 +252,9 @@ public class Decoder implements Runnable, AudioHandler {
                 throw new RuntimeException("Cant open decoder");
             }
 
+            //受支持的格式只有flt和s16，如果歌曲的格式不是这两种之一，则一定会进行重采样，且格式会统一为flt
+            //若不用重采样，歌曲的格式也就受支持，不必担心和portaudio的格式不统一
+            //非平面格式也会重采样至平面格式
             //重采样所需
             int srcChannels = codecCtx.ch_layout().nb_channels(), dstChannels;
             int srcSampleFormat = codecCtx.sample_fmt(), dstSampleFormat;
@@ -316,14 +319,16 @@ public class Decoder implements Runnable, AudioHandler {
                                 short[] shortData = ArrayLoop.getArray(arraySize, short[].class);
                                 shortData = ArrayLoop.reSize(shortData, arraySize);
                                 ShortPointer data = new ShortPointer(rawData[0]);
-                                data.get(shortData);
+                                //从指针中获取指定大小的数据，防止因为数组没有缩容而导致访问越界
+                                data.get(shortData, 0, arraySize);
                                 buffer.put(Buffer.Data.of(samples, oldSamples, shortData));
                             }
                             case AV_SAMPLE_FMT_FLT -> {
                                 float[] floatData = ArrayLoop.getArray(arraySize, float[].class);
                                 floatData = ArrayLoop.reSize(floatData, arraySize);
                                 FloatPointer data = new FloatPointer(rawData[0]);
-                                data.get(floatData);
+                                //从指针中获取指定大小的数据，防止因为数组没有缩容而导致访问越界
+                                data.get(floatData, 0, arraySize);
                                 buffer.put(Buffer.Data.of(samples, oldSamples, floatData));
                             }
                         }

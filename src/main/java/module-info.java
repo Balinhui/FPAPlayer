@@ -11,5 +11,4 @@ module org.balinhui.fpa {
 
     exports org.balinhui.fpa to javafx.graphics;
     exports org.balinhui.fpa.nativeapis to com.sun.jna;
-    exports org.balinhui.fpa.portaudioforjava to com.sun.jna;
 }
