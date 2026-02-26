@@ -30,7 +30,7 @@ public class Resample {
         this.dstChannels = info.channels;
         this.dstSampleRate = info.sampleRate;
         this.dstSampleFormat = info.sampleFormat;
-        dstData = new PointerPointer<>(1);
+        dstData = new PointerPointer<>((Pointer) null);
         linSize = new IntPointer();
         AVChannelLayout srcLayout = new AVChannelLayout().nb_channels(srcChannels);
         AVChannelLayout dstLayout = new AVChannelLayout().nb_channels(dstChannels);
@@ -85,10 +85,9 @@ public class Resample {
     }
 
     public void free() {
-        if (!dstData.isNull()) {
-            av_freep(dstData);
-        }
-        dstData.deallocate();
+        if (!dstData.isNull())
+            av_freep(dstData.position(0));
+        av_freep(dstData);
         linSize.deallocate();
         swr_free(swrCtx);
         dstSamples = -1;

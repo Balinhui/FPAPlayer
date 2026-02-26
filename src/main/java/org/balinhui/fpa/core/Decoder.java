@@ -310,7 +310,7 @@ public class Decoder implements Runnable, AudioHandler {
                         if (needsResample) {
                             samples = resample.process(rawData, samples, frame.data());
                         } else {
-                            rawData[0] = frame.data(0);
+                            rawData[0] = frame.data(0).position(0);
                         }
                         int arraySize = samples * dstChannels;
 
