@@ -22,6 +22,8 @@ public class Config {
     * app.height:double: 窗口高度
     *
     * lyric.location:String: 歌词位置
+    *
+    * audio.api:String: 音频api
     */
     private static final String xKey = "app.x";
     private static final String yKey = "app.y";
@@ -29,6 +31,8 @@ public class Config {
     private static final String heightKey = "app.height";
 
     private static final String locationKey = "lyric.location";
+
+    private static final String apiKey = "audio.api";
 
     static {
         checkDir();
@@ -158,14 +162,20 @@ public class Config {
         return Double.parseDouble(property);
     }
 
-    public static void location(String value) {
-        if (value.equals("center")) ppt.setProperty(locationKey, value);
-        if (value.equals("left")) ppt.setProperty(locationKey, value);
-        if (value.equals("right")) ppt.setProperty(locationKey, value);
+    public static void location(Location value) {
+        ppt.setProperty(locationKey, value.name());
     }
 
     public static String location() {
-        return ppt.getProperty(locationKey, "center");
+        return ppt.getProperty(locationKey, Location.CENTER.name());
+    }
+
+    public static void api(AudioAPI value) {
+        ppt.setProperty(apiKey, value.name());
+    }
+
+    public static String api() {
+        return ppt.getProperty(apiKey, AudioAPI.DIRECT_SOUND.name());
     }
 
 
@@ -173,4 +183,11 @@ public class Config {
         return d + "";
     }
 
+    public enum Location {
+        CENTER, LEFT, RIGHT
+    }
+
+    public enum AudioAPI {
+        WASAPI, DIRECT_SOUND
+    }
 }

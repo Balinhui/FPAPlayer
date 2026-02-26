@@ -10,6 +10,7 @@ import org.balinhui.fpa.nativeapis.Global;
 import org.balinhui.fpa.nativeapis.MessageFlags;
 import org.balinhui.fpa.util.ArrayLoop;
 import org.balinhui.fpa.util.AudioUtil;
+import org.balinhui.fpa.util.Config;
 import org.balinhui.fpa.util.Win32;
 
 import java.util.concurrent.ExecutorService;
@@ -19,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 
 import static com.portaudio.PortAudio.*;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLT;
-import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_S16;
 
 public class Player implements Runnable, AudioHandler {
     private static final Logger logger = LogManager.getLogger(Player.class);
@@ -63,22 +63,13 @@ public class Player implements Runnable, AudioHandler {
             //初始化PortAudio
             initialize();
 
-            //Debug信息
-            {
-                logger.debug("asio host type: {}",
-                        hostApiTypeIdToHostApiIndex(HOST_API_TYPE_ASIO)
-                );
-
-                logger.debug("wasapi host type: {}",
-                        hostApiTypeIdToHostApiIndex(HOST_API_TYPE_WASAPI)
-                );
-            }
-
             //获取默认输出设备信息
             int id = getDefaultOutputDevice();
+            if (Config.api().equals("WASAPI"))
+                id = getHostApiInfo(hostApiTypeIdToHostApiIndex(HOST_API_TYPE_WASAPI)).defaultOutputDevice;
             this.cId = id;
             DeviceInfo deviceInfo = getDeviceInfo(id);
-            logger.info("默认输出设备为: {}", deviceInfo.name);
+            logger.info("默认 {} 输出设备为: {}",Config.api() , deviceInfo.name);
 
             //取得当前的设备的最大输出声道数和采样率
             getDeviceChannelsAndSampleRateInfo(id, deviceInfo);
@@ -109,6 +100,8 @@ public class Player implements Runnable, AudioHandler {
      */
     private void refreshDevice() {
         int id = getDefaultOutputDevice();
+        if (Config.api().equals("WASAPI"))
+            id = getHostApiInfo(hostApiTypeIdToHostApiIndex(HOST_API_TYPE_WASAPI)).defaultOutputDevice;
         if (id != cId) {
             logger.info("检测到输出设备更改，由id: {} -> id: {}", cId, id);
             this.cId = id;
@@ -151,6 +144,15 @@ public class Player implements Runnable, AudioHandler {
             resample = true;
         }
 
+        if (Config.api().equals("WASAPI")) {
+            int defaultSampleRate = (int) getDeviceInfo(cId).defaultSampleRate;
+            if (sampleRate != defaultSampleRate) {
+                logger.info("使用WASAPI，歌曲采样率必须为 {} HZ", defaultSampleRate);
+                sampleRate = defaultSampleRate;
+                resample = true;
+            }
+        }
+
         openStream(channels, AudioUtil.getPortAudioSampleFormat(sampleFormat), sampleRate);
 
         return new OutputInfo(resample, channels, sampleRate, AudioUtil.getSampleFormatNoPlanar(sampleFormat));
@@ -159,10 +161,10 @@ public class Player implements Runnable, AudioHandler {
     /**
      * 打开统一的流，输出信息为将所有歌曲重采样为特定格式<br>
      * channels: 2<br>
-     * sampleRate: 44100Hz<br>
+     * sampleRate: 48000Hz<br>
      * sampleFormat: <br>
-     * AV_SAMPLE_FMT_S16(FFmpeg);<br>
-     * paInt16(PortAudio)
+     * AV_SAMPLE_FMT_FLT(FFmpeg);<br>
+     * FORMAT_FLOAT_32(PortAudio)
      * @return 播放时的输出信息
      */
     public OutputInfo readForSameOut() {
@@ -170,12 +172,17 @@ public class Player implements Runnable, AudioHandler {
         refreshDevice();
 
         int channels = 2;
-        int sampleRate = 44100;
+        int sampleRate = 48000;
+        if (Config.api().equals("WASAPI")) {
+            int onlySampleRate = (int) getDeviceInfo(cId).defaultSampleRate;
+            logger.info("使用WASAPI，所有歌曲的采样率统一为: {}", onlySampleRate);
+            sampleRate = onlySampleRate;
+        }
         boolean resample = true;
 
-        openStream(channels, FORMAT_INT_16, sampleRate);
+        openStream(channels, FORMAT_FLOAT_32, sampleRate);
 
-        return new OutputInfo(resample, channels, sampleRate, AV_SAMPLE_FMT_S16);
+        return new OutputInfo(resample, channels, sampleRate, AV_SAMPLE_FMT_FLT);
     }
 
     /**
@@ -199,7 +206,9 @@ public class Player implements Runnable, AudioHandler {
                 0,
                 0
         );
-        logger.info("打开流");
+        StreamInfo info = stream.getInfo();
+        logger.info("打开流。OutputLatency: {}, SampleRate: {}",
+                info.outputLatency, info.sampleRate);
     }
 
     /**
@@ -211,15 +220,16 @@ public class Player implements Runnable, AudioHandler {
         if (!stream.isActive())
             stream.start();
 
-        if (stream.getWriteAvailable() != 0) {
-            logger.fatal("当前流无法写入");
-            int result = Global.message(
+        int ret;
+        if ((ret = stream.getWriteAvailable()) < 0) {
+            logger.fatal("当前流无法写入: {}", ret);
+            ret = Global.message(
                     Win32.getLongHWND(FPAScreen.mainWindow),
                     "出错",
-                    "歌曲的流无法写入设备，可能是设备问题或请重试",
+                    "歌曲的流无法写入设备: " + ret + "，可能是设备问题或请重试",
                     MessageFlags.DisplayButtons.RETRY_CANCEL | MessageFlags.Icons.WARNING
             );
-            if (result == MessageFlags.ReturnValue.RETRY) run();
+            if (ret == MessageFlags.ReturnValue.RETRY) run();
             CurrentStatus.to(CurrentStatus.Status.STOP);
             buffer.clear();
         }
