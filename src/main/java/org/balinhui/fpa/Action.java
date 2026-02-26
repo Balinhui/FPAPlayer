@@ -1,11 +1,13 @@
 package org.balinhui.fpa;
 
 import javafx.application.Platform;
+import javafx.geometry.Pos;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.image.Image;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.WindowEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -104,8 +106,26 @@ public class Action {
         }
     }
 
-    public void clickSettingApplyButton() {
-        FPAScreen.settingWindow.close();
+    public void clickSettingApplyButton(Config.AudioAPI audioAPI, Config.Location location) {
+        clickSettingOKButton(audioAPI, location);
+        SettingScreen.settingWindow.close();
+    }
+
+    public void clickSettingOKButton(Config.AudioAPI audioAPI, Config.Location location) {
+        setLyricsLocation(location);
+        int result = 0;
+        if (!Config.api().equals(audioAPI.name())) {
+            result = Global.message(
+                    Win32.getLongHWND(SettingScreen.settingWindow),
+                    "提示",
+                    "你已更改了音频API，这需要重启才能发挥作用",
+                    MessageFlags.DisplayButtons.YES_NO | MessageFlags.Icons.WARNING
+            );
+        }
+
+        Config.location(location);
+        if (result == MessageFlags.ReturnValue.YES)
+            Config.api(audioAPI);
     }
 
     private void inputPaths(String[] paths) {
@@ -341,6 +361,26 @@ public class Action {
         dragEvent.consume();
     }
 
+    private void setLyricsLocation(Config.Location lyricsLocation) {
+        switch (lyricsLocation) {
+            case LEFT -> {
+                FPAScreen.lyricsPane.setAlignment(Pos.BOTTOM_LEFT);
+                for (Lyric lyric : lyricList)
+                    lyric.getLabel().setTextAlignment(TextAlignment.LEFT);
+            }
+            case RIGHT -> {
+                FPAScreen.lyricsPane.setAlignment(Pos.BOTTOM_RIGHT);
+                for (Lyric lyric : lyricList)
+                    lyric.getLabel().setTextAlignment(TextAlignment.RIGHT);
+            }
+            default -> {
+                FPAScreen.lyricsPane.setAlignment(Pos.BOTTOM_CENTER);
+                for (Lyric lyric : lyricList)
+                    lyric.getLabel().setTextAlignment(TextAlignment.CENTER);
+            }
+        }
+    }
+
     /**
      * 尝试将播放结束后的处理集中在此，不知是否有遗漏
      */
@@ -372,6 +412,13 @@ public class Action {
             Config.y(FPAScreen.mainWindow.getY());
             Config.width(FPAScreen.mainWindow.getScene().getWidth());
             Config.height(FPAScreen.mainWindow.getScene().getHeight());
+        }
+        if (!Config.api().equals("WASAPI") && !Config.api().equals("DIRECT_SOUND"))
+            Config.api(Config.AudioAPI.DIRECT_SOUND);
+        if (!Config.location().equals("CENTER") &&
+                !Config.location().equals("LEFT") &&
+                !Config.location().equals("RIGHT")) {
+            Config.location(Config.Location.CENTER);
         }
         Config.store();
     }

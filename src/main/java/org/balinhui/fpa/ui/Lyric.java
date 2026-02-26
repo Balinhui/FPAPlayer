@@ -34,8 +34,8 @@ public class Lyric {
         this.lyric = new Label(context);
         this.lyric.setAlignment(Pos.CENTER);
         switch (Config.location()) {
-            case "left" -> this.lyric.setTextAlignment(TextAlignment.LEFT);
-            case "right" -> this.lyric.setTextAlignment(TextAlignment.RIGHT);
+            case "LEFT" -> this.lyric.setTextAlignment(TextAlignment.LEFT);
+            case "RIGHT" -> this.lyric.setTextAlignment(TextAlignment.RIGHT);
             default -> this.lyric.setTextAlignment(TextAlignment.CENTER);
         }
         this.lyric.setWrapText(true);

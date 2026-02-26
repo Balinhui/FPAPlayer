@@ -15,7 +15,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.apache.logging.log4j.LogManager;
@@ -37,26 +36,6 @@ public class FPAScreen extends Application {
      * 播放器的主窗口
      */
     public static Stage mainWindow;
-
-    /**
-     * 右键菜单打开的设置窗口
-     */
-    public static Stage settingWindow;
-
-    /**
-     * 设置 窗口中的应用按钮
-     */
-    public static Button apply;
-
-    /**
-     * 设置 窗口中的取消按钮
-     */
-    public static Button cancel;
-
-    /**
-     * 设置 窗口中的确定按钮
-     */
-    public static Button ok;
 
     /**
      * 封面图片
@@ -254,7 +233,7 @@ public class FPAScreen extends Application {
         stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
         mainWindow = stage;
         Windows.setEffect(stage, DwmAPI.DWM_SYSTEMBACKDROP_TYPE.DWMSBT_MAINWINDOW);
-        settingWindow = createSettingWindow();//等待主窗口创建完成再初始化设置窗口
+        SettingScreen.init(mainWindow, action);
     }
 
     @Override
@@ -330,8 +309,8 @@ public class FPAScreen extends Application {
         lyricsPane.setPrefHeight(smallSize);
         lyricsPane.setPadding(new Insets(0, 0, 10, 0));
         switch (Config.location()) {
-            case "left" -> lyricsPane.setAlignment(Pos.BOTTOM_LEFT);
-            case "right" -> lyricsPane.setAlignment(Pos.BOTTOM_RIGHT);
+            case "LEFT" -> lyricsPane.setAlignment(Pos.BOTTOM_LEFT);
+            case "RIGHT" -> lyricsPane.setAlignment(Pos.BOTTOM_RIGHT);
             default -> lyricsPane.setAlignment(Pos.BOTTOM_CENTER);
         }
         Rectangle clip = new Rectangle();
@@ -448,8 +427,10 @@ public class FPAScreen extends Application {
         Menu moreStylesMenu = new Menu(Resources.StringRes.more_styles_item);
 
         //设置菜单项
-        openSetting.setOnAction(actionEvent ->
-            settingWindow.showAndWait());
+        openSetting.setOnAction(actionEvent -> {
+            SettingScreen.readConfig();
+            SettingScreen.settingWindow.showAndWait();
+        });
         fullScreen.selectedProperty().addListener((
                 observable,
                 oldValue, newValue) -> {
@@ -460,8 +441,9 @@ public class FPAScreen extends Application {
         openDark.selectedProperty().addListener((
                 observableValue,
                 old, open) -> {
-            Buttons.setLightOrDark(open, Buttons.Color.WHITE, button, pause);//白色按钮背景变色
-            Buttons.setLightOrDark(open, Buttons.Color.BLUE, apply);//蓝色按钮背景变色
+            Buttons.setLightOrDark(open, Buttons.Color.WHITE,
+                    button, pause, SettingScreen.cancel, SettingScreen.ok);//白色按钮背景变色
+            Buttons.setLightOrDark(open, Buttons.Color.BLUE, SettingScreen.apply);//蓝色按钮背景变色
             Windows.setLightOrDark(mainWindow, open);//窗口背景变色
             Lyric.setDark(open);//歌词默认颜色改变
             for (Lyric lyric : action.getLyricList()) {//当前歌词颜色改变
@@ -522,59 +504,5 @@ public class FPAScreen extends Application {
                 moreStylesMenu
         );
         return menu;
-    }
-
-    private Stage createSettingWindow() {
-        Stage instance = new Stage();
-        HBox root = new HBox(10);
-        Scene scene = new Scene(root);
-
-        if (SystemInfo.systemInfo.version >= DwmAPI.SUPPORT_API_VERSION) {
-            root.setStyle("-fx-background-color: transparent");
-            scene.setFill(Color.TRANSPARENT);
-            instance.initStyle(StageStyle.UNIFIED);
-        }
-        instance.setTitle(Resources.StringRes.setting_item);
-        instance.initModality(Modality.APPLICATION_MODAL);//设置为应用模态
-        instance.initOwner(mainWindow);
-
-        instance.setWidth(500);
-        instance.setHeight(350);
-        instance.setResizable(false);
-        instance.getIcons().addAll(
-                Resources.ImageRes.fpa16,
-                Resources.ImageRes.fpa32,
-                Resources.ImageRes.fpa64,
-                Resources.ImageRes.fpa128,
-                Resources.ImageRes.fpa256,
-                Resources.ImageRes.fpa
-        );
-
-
-        root.setPadding(new Insets(10));
-        root.setAlignment(Pos.BOTTOM_RIGHT);
-
-        apply = new Button(Resources.StringRes.apply_button_name);
-        Buttons.setLightOrDark(false, Buttons.Color.BLUE, apply);
-        apply.setPrefWidth(80);
-        apply.setFont(Resources.FontRes.yahei_super_small_font);
-        apply.setOnAction(actionEvent -> action.clickSettingApplyButton());
-
-        cancel = new Button(Resources.StringRes.cancel_button_name);
-        Buttons.setLightOrDark(false, Buttons.Color.WHITE, cancel);
-        cancel.setPrefWidth(80);
-        cancel.setFont(Resources.FontRes.yahei_super_small_font);
-        cancel.setOnAction(actionEvent -> settingWindow.close());
-
-        ok = new Button(Resources.StringRes.ok_button_name);
-        Buttons.setLightOrDark(false, Buttons.Color.WHITE, ok);
-        ok.setPrefWidth(80);
-        ok.setFont(Resources.FontRes.yahei_super_small_font);
-
-        root.getChildren().addAll(ok, cancel, apply);
-
-        instance.setScene(scene);
-
-        return instance;
     }
 }
