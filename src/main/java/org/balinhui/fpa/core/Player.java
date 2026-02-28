@@ -34,6 +34,8 @@ public class Player implements Runnable, AudioHandler {
     private PlaySample start;//播放循环期间每一帧调用一次
     private final ExecutorService singleThread;//player的唯一线程，一切与portaudio有关的操作都将在这里进行
 
+    public static boolean isSupportWasapi;
+
     public static Player getPlayer() {
         return player;
     }
@@ -62,6 +64,8 @@ public class Player implements Runnable, AudioHandler {
         singleThread.submit(() -> {
             //初始化PortAudio
             initialize();
+
+            isSupportWasapi = hostApiTypeIdToHostApiIndex(HOST_API_TYPE_WASAPI) > 0;
 
             //获取默认输出设备信息
             int id = getDefaultOutputDevice();

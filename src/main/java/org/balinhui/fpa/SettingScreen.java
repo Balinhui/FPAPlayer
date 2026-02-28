@@ -10,15 +10,18 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.balinhui.fpa.info.SystemInfo;
-import org.balinhui.fpa.nativeapis.DwmAPI;
+import org.balinhui.fpa.core.Player;
+import org.balinhui.fpa.nativeapis.Global;
+import org.balinhui.fpa.nativeapis.MessageFlags;
 import org.balinhui.fpa.ui.Buttons;
 import org.balinhui.fpa.util.Config;
+import org.balinhui.fpa.util.Win32;
 
 public class SettingScreen {
     private static final Logger logger = LogManager.getLogger(SettingScreen.class);
@@ -48,11 +51,8 @@ public class SettingScreen {
         VBox root = new VBox(10);
         Scene scene = new Scene(root);
 
-        if (SystemInfo.systemInfo.version >= DwmAPI.SUPPORT_API_VERSION) {
-            //root.setStyle("-fx-background-color: transparent");
-            //scene.setFill(Color.TRANSPARENT);
-            instance.initStyle(StageStyle.UNIFIED);
-        }
+
+        instance.initStyle(StageStyle.UNIFIED);
         instance.setTitle(Resources.StringRes.setting_item);
         instance.initModality(Modality.APPLICATION_MODAL);//设置为应用模态
         instance.initOwner(mainWindow);
@@ -71,72 +71,85 @@ public class SettingScreen {
 
 
         root.setPadding(new Insets(10));
+        root.setStyle("-fx-background-color: white");
         ButtonBar buttonBar = new ButtonBar();
 
         VBox content = new VBox(10);
         VBox.setVgrow(content, Priority.ALWAYS);
 
-        {
-            //##################################ITEM1##################################
+        //##################################ITEM1##################################
 
-            Label audioAPI = new Label("选择音频API");
-            audioAPI.setFont(Resources.FontRes.yahei_small_font);
+        Label lAudioAPI = new Label(Resources.StringRes.choose_audio_api);
+        lAudioAPI.setFont(Resources.FontRes.yahei_small_font);
 
-            Region spacer1 = new Region();
-            HBox.setHgrow(spacer1, Priority.ALWAYS);
+        Region spacer1 = new Region();
+        HBox.setHgrow(spacer1, Priority.ALWAYS);
 
-            audioAPIChoice = new ChoiceBox<>();
-            audioAPIChoice.getItems().addAll(Config.AudioAPI.DIRECT_SOUND, Config.AudioAPI.WASAPI);
-            audioAPIChoice.setStyle(
-                    "-fx-background-color: white;" +
-                            "-fx-background-radius: 5;" +
-                            "-fx-border-color: #ddd;" +
-                            "-fx-border-radius: 5;" +
-                            "-fx-padding: 1;" +
-                            "-fx-font-size: 11px;"
-            );
-            audioAPIChoice.getSelectionModel().selectedIndexProperty().addListener(
-                    (observable, oldValue, newValue) -> {
-                        int index = newValue.intValue();
-                        setAudioAPI(audioAPIChoice.getItems().get(index));
+        audioAPIChoice = new ChoiceBox<>();
+        audioAPIChoice.getItems().addAll(Config.AudioAPI.DIRECT_SOUND, Config.AudioAPI.WASAPI);
+        audioAPIChoice.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 5;" +
+                        "-fx-border-color: #ddd;" +
+                        "-fx-border-radius: 5;" +
+                        "-fx-padding: 1;" +
+                        "-fx-font-size: 11px;"
+        );
+        audioAPIChoice.getSelectionModel().selectedIndexProperty().addListener(
+                (observable, oldValue, newValue) -> {
+                    int index = newValue.intValue();
+                    Config.AudioAPI newAPI = audioAPIChoice.getItems().get(index);
+                    if (newAPI == Config.AudioAPI.WASAPI) {
+                        if (Player.isSupportWasapi) setAudioAPI(newAPI);
+                        else {
+                            Global.message(
+                                    Win32.getLongHWND(settingWindow),
+                                    "提示",
+                                    "当前设备不支持WASAPI，无法使用",
+                                    MessageFlags.DisplayButtons.OK | MessageFlags.Icons.HAND
+                            );
+                            audioAPIChoice.getSelectionModel().select(oldValue.intValue());
+                        }
+                    } else {
+                        setAudioAPI(newAPI);
                     }
-            );
+                }
+        );
 
-            HBox item1 = new HBox(10);
-            item1.setPrefWidth(Double.MAX_VALUE);
-            item1.getChildren().addAll(audioAPI, spacer1, audioAPIChoice);
+        HBox item1 = new HBox(10);
+        item1.setPrefWidth(Double.MAX_VALUE);
+        item1.getChildren().addAll(lAudioAPI, spacer1, audioAPIChoice);
 
-            //##################################ITEM2##################################
+        //##################################ITEM2##################################
 
-            Label location = new Label("选择歌词位置");
-            location.setFont(Resources.FontRes.yahei_small_font);
+        Label lLocation = new Label(Resources.StringRes.choose_lyrics_location);
+        lLocation.setFont(Resources.FontRes.yahei_small_font);
 
-            Region spacer2 = new Region();
-            HBox.setHgrow(spacer2, Priority.ALWAYS);
+        Region spacer2 = new Region();
+        HBox.setHgrow(spacer2, Priority.ALWAYS);
 
-            locationChoice = new ChoiceBox<>();
-            locationChoice.getItems().addAll(Config.Location.LEFT, Config.Location.CENTER, Config.Location.RIGHT);
-            locationChoice.setStyle(
-                    "-fx-background-color: white;" +
-                            "-fx-background-radius: 5;" +
-                            "-fx-border-color: #ddd;" +
-                            "-fx-border-radius: 5;" +
-                            "-fx-padding: 1;" +
-                            "-fx-font-size: 11px;"
-            );
-            locationChoice.getSelectionModel().selectedIndexProperty().addListener(
-                    (observable, oldValue, newValue) -> {
-                        int index = newValue.intValue();
-                        setLocation(locationChoice.getItems().get(index));
-                    }
-            );
+        locationChoice = new ChoiceBox<>();
+        locationChoice.getItems().addAll(Config.Location.LEFT, Config.Location.CENTER, Config.Location.RIGHT);
+        locationChoice.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 5;" +
+                        "-fx-border-color: #ddd;" +
+                        "-fx-border-radius: 5;" +
+                        "-fx-padding: 1;" +
+                        "-fx-font-size: 11px;"
+        );
+        locationChoice.getSelectionModel().selectedIndexProperty().addListener(
+                (observable, oldValue, newValue) -> {
+                    int index = newValue.intValue();
+                    setLocation(locationChoice.getItems().get(index));
+                }
+        );
 
-            HBox item2 = new HBox(10);
-            item2.setPrefWidth(Double.MAX_VALUE);
-            item2.getChildren().addAll(location, spacer2, locationChoice);
+        HBox item2 = new HBox(10);
+        item2.setPrefWidth(Double.MAX_VALUE);
+        item2.getChildren().addAll(lLocation, spacer2, locationChoice);
 
-            content.getChildren().addAll(item1, item2);
-        }
+        content.getChildren().addAll(item1, item2);
 
         {
             apply = new Button(Resources.StringRes.apply_button_name);
