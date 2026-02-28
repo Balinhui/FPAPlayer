@@ -43,6 +43,8 @@ public class Resources {
         public static final String mica_style = "云母样式";
         public static final String transient_style = "亚克力样式";
         public static final String tabbed_style = "tabbed样式";
+        public static final String choose_audio_api = "选择音频API";
+        public static final String choose_lyrics_location = "选择歌词位置";
     }
     public static class SuffixNameRes {
         public static final List<String> suffix_names = List.of(".mp3", ".flac", ".ogg", ".wav", ".m4a");

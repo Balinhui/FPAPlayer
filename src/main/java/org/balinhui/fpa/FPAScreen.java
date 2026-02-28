@@ -107,6 +107,11 @@ public class FPAScreen extends Application {
      */
     public static double currentHeight;
 
+    /**
+     * 当前是否为暗黑模式
+     */
+    public static boolean isDark;
+
     public static final double largeSize = 450;
     public static final double mediumSize = 300;
     public static final double smallSize = 220;
@@ -440,20 +445,10 @@ public class FPAScreen extends Application {
         });
         openDark.selectedProperty().addListener((
                 observableValue,
-                old, open) -> {
-            Buttons.setLightOrDark(open, Buttons.Color.WHITE,
-                    button, pause, SettingScreen.cancel, SettingScreen.ok);//白色按钮背景变色
-            Buttons.setLightOrDark(open, Buttons.Color.BLUE, SettingScreen.apply);//蓝色按钮背景变色
-            Windows.setLightOrDark(mainWindow, open);//窗口背景变色
-            Lyric.setDark(open);//歌词默认颜色改变
-            for (Lyric lyric : action.getLyricList()) {//当前歌词颜色改变
-                int index = 1;
-                if (lyricsPane.getChildren().size() == 1) index = 0;
-                if (lyric.getLabel() == lyricsPane.getChildren().get(index))
-                    lyric.setModeForHighLight(open);
-                else lyric.setMode(open);
-            }
-            if (open) {//右键菜单，资源图片改变
+                old, openDarkMode) -> {
+            isDark = openDarkMode;
+            action.setLightOrDarkMode(openDarkMode);
+            if (openDarkMode) {//右键菜单，资源图片改变
                 playIcon.setImage(Resources.ImageRes.play_white);
                 pauseIcon.setImage(Resources.ImageRes.pause_white);
                 menu.setStyle(darkMenu);

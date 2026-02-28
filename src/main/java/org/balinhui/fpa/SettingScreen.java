@@ -181,6 +181,17 @@ public class SettingScreen {
         root.getChildren().addAll(content, buttonBar);
 
         instance.setScene(scene);
+        instance.setOnShown(windowEvent -> {
+            if (FPAScreen.isDark) {
+                root.setStyle("-fx-background-color: #202020");
+                lAudioAPI.setTextFill(Color.WHITE);
+                lLocation.setTextFill(Color.WHITE);
+            } else {
+                root.setStyle("-fx-background-color: white");
+                lAudioAPI.setTextFill(Color.BLACK);
+                lLocation.setTextFill(Color.BLACK);
+            }
+        });
 
         return instance;
     }

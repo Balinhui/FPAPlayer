@@ -21,9 +21,7 @@ import org.balinhui.fpa.info.SystemInfo;
 import org.balinhui.fpa.nativeapis.Global;
 import org.balinhui.fpa.nativeapis.ITaskBarListAPI;
 import org.balinhui.fpa.nativeapis.MessageFlags;
-import org.balinhui.fpa.ui.Lyric;
-import org.balinhui.fpa.ui.LyricsPlayer;
-import org.balinhui.fpa.ui.Taskbar;
+import org.balinhui.fpa.ui.*;
 import org.balinhui.fpa.util.*;
 
 import java.io.ByteArrayInputStream;
@@ -280,6 +278,22 @@ public class Action {
             FPAScreen.progress.setProgress(progress);
             Taskbar.setProgress(progress);
         });
+    }
+
+    public void setLightOrDarkMode(boolean isDark) {
+        Buttons.setLightOrDark(isDark, Buttons.Color.WHITE,
+                FPAScreen.button, FPAScreen.pause, SettingScreen.cancel, SettingScreen.ok);//白色按钮背景变色
+        Buttons.setLightOrDark(isDark, Buttons.Color.BLUE, SettingScreen.apply);//蓝色按钮背景变色
+        Windows.setLightOrDark(FPAScreen.mainWindow, isDark);//窗口背景变色
+        Lyric.setDark(isDark);//歌词默认颜色改变
+
+        int highLightIndex = (FPAScreen.lyricsPane.getChildren().size() == 2) ? 0 : 1;//针对当前歌词高亮
+        for (Lyric lyric : lyricList) {//当前歌词颜色改变
+            if (highLightIndex < FPAScreen.lyricsPane.getChildren().size() &&
+                    lyric.getLabel() == FPAScreen.lyricsPane.getChildren().get(highLightIndex))
+                lyric.setModeForHighLight(isDark);
+            else lyric.setMode(isDark);
+        }
     }
 
     public List<Lyric> getLyricList() {

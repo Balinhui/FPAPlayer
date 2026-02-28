@@ -31,6 +31,10 @@ public class Windows {
         setWindowAttribute(hWnd, DwmAPI.DWMWA_SYSTEMBACKDROP_TYPE, pvAttribute);
     }
 
+    /**
+     * 设置窗口是否为暗黑模式
+     * @param pvAttribute 若要设置暗黑模式，则为{@code true}，否则为{@code false}
+     */
     public static void setLightOrDark(Stage stage, boolean pvAttribute) {
         setWindowAttribute(Win32.getHWND(stage), DwmAPI.DWMWA_USE_IMMERSIVE_DARK_MODE, pvAttribute ? 1 : 0);
     }
